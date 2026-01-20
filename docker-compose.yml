@@ -22,9 +22,7 @@ services:
 
   # Backend API
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/clucraft/priceghost-backend:latest
     container_name: priceghost-backend
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/priceghost
@@ -40,9 +38,7 @@ services:
 
   # Frontend
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/clucraft/priceghost-frontend:latest
     container_name: priceghost-frontend
     ports:
       - "80:80"
