@@ -7,11 +7,13 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onDelete }: ProductCardProps) {
-  const formatPrice = (price: number | null, currency: string | null) => {
-    if (price === null) return 'N/A';
+  const formatPrice = (price: number | string | null, currency: string | null) => {
+    if (price === null || price === undefined) return 'N/A';
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return 'N/A';
     const currencySymbol =
       currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
-    return `${currencySymbol}${price.toFixed(2)}`;
+    return `${currencySymbol}${numPrice.toFixed(2)}`;
   };
 
   const formatDate = (dateStr: string | null) => {

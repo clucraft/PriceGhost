@@ -71,11 +71,13 @@ export default function ProductDetail() {
     fetchData(days);
   };
 
-  const formatPrice = (price: number | null, currency: string | null) => {
-    if (price === null) return 'N/A';
+  const formatPrice = (price: number | string | null, currency: string | null) => {
+    if (price === null || price === undefined) return 'N/A';
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(numPrice)) return 'N/A';
     const currencySymbol =
       currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
-    return `${currencySymbol}${price.toFixed(2)}`;
+    return `${currencySymbol}${numPrice.toFixed(2)}`;
   };
 
   if (isLoading) {
@@ -105,10 +107,17 @@ export default function ProductDetail() {
     );
   }
 
-  const priceChange =
-    product.stats && prices.length > 1
-      ? ((product.current_price || 0) - prices[0].price) / prices[0].price
-      : null;
+  const priceChange = (() => {
+    if (!product.stats || prices.length < 1) return null;
+    const currentPrice = typeof product.current_price === 'string'
+      ? parseFloat(product.current_price)
+      : (product.current_price || 0);
+    const firstPrice = typeof prices[0].price === 'string'
+      ? parseFloat(prices[0].price)
+      : prices[0].price;
+    if (firstPrice === 0) return null;
+    return (currentPrice - firstPrice) / firstPrice;
+  })();
 
   return (
     <Layout>

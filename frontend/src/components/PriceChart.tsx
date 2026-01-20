@@ -41,13 +41,15 @@ export default function PriceChart({
 
   const chartData = prices.map((p) => ({
     date: new Date(p.recorded_at).getTime(),
-    price: parseFloat(p.price.toString()),
+    price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
   }));
 
-  const minPrice = Math.min(...chartData.map((d) => d.price));
-  const maxPrice = Math.max(...chartData.map((d) => d.price));
-  const avgPrice =
-    chartData.reduce((sum, d) => sum + d.price, 0) / chartData.length;
+  const priceValues = chartData.map((d) => d.price).filter((p) => !isNaN(p));
+  const minPrice = priceValues.length > 0 ? Math.min(...priceValues) : 0;
+  const maxPrice = priceValues.length > 0 ? Math.max(...priceValues) : 0;
+  const avgPrice = priceValues.length > 0
+    ? priceValues.reduce((sum, p) => sum + p, 0) / priceValues.length
+    : 0;
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -55,6 +57,7 @@ export default function PriceChart({
   };
 
   const formatPrice = (value: number) => {
+    if (value === null || value === undefined || isNaN(value)) return 'N/A';
     return `${currencySymbol}${value.toFixed(2)}`;
   };
 
