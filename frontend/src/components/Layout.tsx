@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
@@ -9,6 +9,19 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    return (saved as 'light' | 'dark') || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   const handleLogout = () => {
     logout();
@@ -64,12 +77,27 @@ export default function Layout({ children }: LayoutProps) {
         .navbar-user {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: 0.75rem;
         }
 
         .navbar-email {
           color: var(--text-muted);
           font-size: 0.875rem;
+        }
+
+        .theme-toggle {
+          background: var(--background);
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          padding: 0.5rem;
+          cursor: pointer;
+          font-size: 1.25rem;
+          line-height: 1;
+          transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+          border-color: var(--primary);
         }
 
         .main-content {
@@ -96,14 +124,23 @@ export default function Layout({ children }: LayoutProps) {
             <span>PriceGhost</span>
           </Link>
 
-          {user && (
-            <div className="navbar-user">
-              <span className="navbar-email">{user.email}</span>
-              <button className="btn btn-secondary" onClick={handleLogout}>
-                Logout
-              </button>
-            </div>
-          )}
+          <div className="navbar-user">
+            <button
+              className="theme-toggle"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
+            {user && (
+              <>
+                <span className="navbar-email">{user.email}</span>
+                <button className="btn btn-secondary" onClick={handleLogout}>
+                  Logout
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </nav>
 

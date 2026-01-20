@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 
 interface AuthFormProps {
@@ -12,6 +12,19 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('theme');
+    return (saved as 'light' | 'dark') || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -94,7 +107,33 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
         .auth-form-footer a {
           font-weight: 500;
         }
+
+        .auth-theme-toggle {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          padding: 0.5rem;
+          cursor: pointer;
+          font-size: 1.25rem;
+          line-height: 1;
+          transition: all 0.2s;
+        }
+
+        .auth-theme-toggle:hover {
+          border-color: var(--primary);
+        }
       `}</style>
+
+      <button
+        className="auth-theme-toggle"
+        onClick={toggleTheme}
+        title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+      >
+        {theme === 'light' ? '🌙' : '☀️'}
+      </button>
 
       <div className="auth-form-card">
         <div className="auth-form-header">

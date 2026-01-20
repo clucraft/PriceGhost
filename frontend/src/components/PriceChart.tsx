@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LineChart,
   Line,
@@ -10,6 +10,16 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { PriceHistory } from '../api/client';
+
+const getThemeColors = () => {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    grid: isDark ? '#334155' : '#e2e8f0',
+    text: isDark ? '#64748b' : '#94a3b8',
+    tooltip: isDark ? '#1e293b' : 'white',
+    tooltipBorder: isDark ? '#334155' : '#e2e8f0',
+  };
+};
 
 interface PriceChartProps {
   prices: PriceHistory[];
@@ -30,6 +40,18 @@ export default function PriceChart({
   onRangeChange,
 }: PriceChartProps) {
   const [selectedRange, setSelectedRange] = useState<number | undefined>(30);
+  const [themeColors, setThemeColors] = useState(getThemeColors);
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setThemeColors(getThemeColors());
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => observer.disconnect();
+  }, []);
 
   const handleRangeChange = (days: number | undefined) => {
     setSelectedRange(days);
@@ -197,16 +219,16 @@ export default function PriceChart({
       <div className="price-chart-container">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke={themeColors.grid} />
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
-              stroke="#94a3b8"
+              stroke={themeColors.text}
               fontSize={12}
             />
             <YAxis
               tickFormatter={formatPrice}
-              stroke="#94a3b8"
+              stroke={themeColors.text}
               fontSize={12}
               domain={['auto', 'auto']}
             />
@@ -222,8 +244,8 @@ export default function PriceChart({
                 })
               }
               contentStyle={{
-                background: 'white',
-                border: '1px solid #e2e8f0',
+                background: themeColors.tooltip,
+                border: `1px solid ${themeColors.tooltipBorder}`,
                 borderRadius: '0.5rem',
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
               }}
