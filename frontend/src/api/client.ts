@@ -1,0 +1,102 @@
+import axios from 'axios';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Auth API
+export const authApi = {
+  register: (email: string, password: string) =>
+    api.post('/auth/register', { email, password }),
+
+  login: (email: string, password: string) =>
+    api.post('/auth/login', { email, password }),
+};
+
+// Products API
+export interface Product {
+  id: number;
+  user_id: number;
+  url: string;
+  name: string | null;
+  image_url: string | null;
+  refresh_interval: number;
+  last_checked: string | null;
+  created_at: string;
+  current_price: number | null;
+  currency: string | null;
+}
+
+export interface ProductWithStats extends Product {
+  stats: {
+    min_price: number;
+    max_price: number;
+    avg_price: number;
+    price_count: number;
+  } | null;
+}
+
+export interface PriceHistory {
+  id: number;
+  product_id: number;
+  price: number;
+  currency: string;
+  recorded_at: string;
+}
+
+export const productsApi = {
+  getAll: () => api.get<Product[]>('/products'),
+
+  getById: (id: number) => api.get<ProductWithStats>(`/products/${id}`),
+
+  create: (url: string, refreshInterval?: number) =>
+    api.post<Product>('/products', { url, refresh_interval: refreshInterval }),
+
+  update: (id: number, data: { name?: string; refresh_interval?: number }) =>
+    api.put<Product>(`/products/${id}`, data),
+
+  delete: (id: number) => api.delete(`/products/${id}`),
+};
+
+// Prices API
+export const pricesApi = {
+  getHistory: (productId: number, days?: number) =>
+    api.get<{ product: Product; prices: PriceHistory[] }>(
+      `/products/${productId}/prices`,
+      { params: days ? { days } : undefined }
+    ),
+
+  refresh: (productId: number) =>
+    api.post<{ message: string; price: PriceHistory }>(
+      `/products/${productId}/refresh`
+    ),
+};
+
+export default api;
