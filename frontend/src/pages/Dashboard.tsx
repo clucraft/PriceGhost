@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import ProductCard from '../components/ProductCard';
 import ProductForm from '../components/ProductForm';
@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchProducts = async () => {
     try {
@@ -42,11 +43,21 @@ export default function Dashboard() {
     }
   };
 
+  const filteredProducts = useMemo(() => {
+    if (!searchQuery.trim()) return products;
+    const query = searchQuery.toLowerCase();
+    return products.filter(
+      (p) =>
+        p.name?.toLowerCase().includes(query) ||
+        p.url.toLowerCase().includes(query)
+    );
+  }, [products, searchQuery]);
+
   return (
     <Layout>
       <style>{`
         .dashboard-header {
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
         }
 
         .dashboard-title {
@@ -60,10 +71,60 @@ export default function Dashboard() {
           margin-top: 0.25rem;
         }
 
-        .products-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1.5rem;
+        .dashboard-controls {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          flex-wrap: wrap;
+        }
+
+        .search-container {
+          flex: 1;
+          min-width: 200px;
+          max-width: 400px;
+          position: relative;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 0.875rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-muted);
+          pointer-events: none;
+        }
+
+        .search-input {
+          width: 100%;
+          padding: 0.75rem 0.875rem 0.75rem 2.5rem;
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          background: var(--surface);
+          color: var(--text);
+          font-size: 0.9375rem;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .search-input::placeholder {
+          color: var(--text-muted);
+        }
+
+        .products-count {
+          color: var(--text-muted);
+          font-size: 0.875rem;
+          margin-bottom: 1rem;
+        }
+
+        .products-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
         }
 
         .empty-state {
@@ -90,6 +151,31 @@ export default function Dashboard() {
           color: var(--text-muted);
         }
 
+        .no-results {
+          text-align: center;
+          padding: 3rem 2rem;
+          background: var(--surface);
+          border-radius: 0.75rem;
+          box-shadow: var(--shadow);
+        }
+
+        .no-results-icon {
+          font-size: 2.5rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .no-results-title {
+          font-size: 1rem;
+          font-weight: 600;
+          color: var(--text);
+          margin-bottom: 0.25rem;
+        }
+
+        .no-results-text {
+          color: var(--text-muted);
+          font-size: 0.875rem;
+        }
+
         .loading-state {
           display: flex;
           justify-content: center;
@@ -108,6 +194,35 @@ export default function Dashboard() {
 
       {error && <div className="alert alert-error">{error}</div>}
 
+      {!isLoading && products.length > 0 && (
+        <div className="dashboard-controls">
+          <div className="search-container">
+            <span className="search-icon">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="7" cy="7" r="5" />
+                <path d="M13 13L11 11" />
+              </svg>
+            </span>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="loading-state">
           <span className="spinner" style={{ width: '3rem', height: '3rem' }} />
@@ -120,16 +235,31 @@ export default function Dashboard() {
             Add your first product URL above to start tracking prices!
           </p>
         </div>
-      ) : (
-        <div className="products-grid">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onDelete={handleDeleteProduct}
-            />
-          ))}
+      ) : filteredProducts.length === 0 ? (
+        <div className="no-results">
+          <div className="no-results-icon">🔍</div>
+          <h3 className="no-results-title">No matching products</h3>
+          <p className="no-results-text">
+            Try adjusting your search query
+          </p>
         </div>
+      ) : (
+        <>
+          <p className="products-count">
+            {filteredProducts.length === products.length
+              ? `${products.length} product${products.length !== 1 ? 's' : ''}`
+              : `${filteredProducts.length} of ${products.length} products`}
+          </p>
+          <div className="products-list">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onDelete={handleDeleteProduct}
+              />
+            ))}
+          </div>
+        </>
       )}
     </Layout>
   );

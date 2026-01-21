@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Product } from '../api/client';
+import Sparkline from './Sparkline';
 
 interface ProductCardProps {
   product: Product;
@@ -16,107 +17,179 @@ export default function ProductCard({ product, onDelete }: ProductCardProps) {
     return `${currencySymbol}${numPrice.toFixed(2)}`;
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Never';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  const formatPriceChange = (change: number | null | undefined) => {
+    if (change === null || change === undefined) return null;
+    const sign = change > 0 ? '+' : '';
+    return `${sign}${change.toFixed(1)}%`;
   };
 
-  const truncateUrl = (url: string, maxLength: number = 50) => {
+  const truncateUrl = (url: string) => {
     try {
       const parsed = new URL(url);
-      const display = parsed.hostname + parsed.pathname;
-      return display.length > maxLength
-        ? display.slice(0, maxLength) + '...'
-        : display;
+      return parsed.hostname.replace('www.', '');
     } catch {
-      return url.length > maxLength ? url.slice(0, maxLength) + '...' : url;
+      return url;
     }
   };
 
+  const priceChangeClass = product.price_change_7d
+    ? product.price_change_7d < 0
+      ? 'price-down'
+      : product.price_change_7d > 0
+      ? 'price-up'
+      : ''
+    : '';
+
   return (
-    <div className="product-card">
+    <div className="product-list-item">
       <style>{`
-        .product-card {
+        .product-list-item {
           background: var(--surface);
           border-radius: 0.75rem;
           box-shadow: var(--shadow);
-          overflow: hidden;
+          padding: 1rem;
           display: flex;
-          flex-direction: column;
-          transition: box-shadow 0.2s;
+          align-items: center;
+          gap: 1rem;
+          transition: box-shadow 0.2s, transform 0.2s;
         }
 
-        .product-card:hover {
+        .product-list-item:hover {
           box-shadow: var(--shadow-lg);
+          transform: translateY(-1px);
         }
 
-        .product-image {
-          width: 100%;
-          height: 160px;
+        .product-thumbnail {
+          width: 64px;
+          height: 64px;
+          border-radius: 0.5rem;
           object-fit: contain;
           background: #f8fafc;
-          padding: 1rem;
+          flex-shrink: 0;
         }
 
-        .product-image-placeholder {
-          width: 100%;
-          height: 160px;
+        [data-theme="dark"] .product-thumbnail {
+          background: #334155;
+        }
+
+        .product-thumbnail-placeholder {
+          width: 64px;
+          height: 64px;
+          border-radius: 0.5rem;
           background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--text-muted);
-          font-size: 2rem;
+          font-size: 1.5rem;
+          flex-shrink: 0;
         }
 
-        .product-content {
-          padding: 1rem;
+        [data-theme="dark"] .product-thumbnail-placeholder {
+          background: linear-gradient(135deg, #334155 0%, #475569 100%);
+        }
+
+        .product-info {
           flex: 1;
-          display: flex;
-          flex-direction: column;
+          min-width: 0;
         }
 
         .product-name {
           font-weight: 600;
           color: var(--text);
-          margin-bottom: 0.25rem;
+          font-size: 0.9375rem;
           line-height: 1.3;
           display: -webkit-box;
-          -webkit-line-clamp: 2;
+          -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          margin-bottom: 0.25rem;
         }
 
-        .product-url {
+        .product-source {
           font-size: 0.75rem;
           color: var(--text-muted);
-          margin-bottom: 0.75rem;
         }
 
-        .product-price {
-          font-size: 1.5rem;
+        .product-price-section {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.25rem;
+          min-width: 80px;
+        }
+
+        .product-current-price {
+          font-size: 1.125rem;
           font-weight: 700;
           color: var(--primary);
-          margin-bottom: 0.5rem;
         }
 
-        .product-meta {
+        .product-price-change {
           font-size: 0.75rem;
-          color: var(--text-muted);
-          margin-bottom: 1rem;
+          font-weight: 600;
+        }
+
+        .product-price-change.price-up {
+          color: #ef4444;
+        }
+
+        .product-price-change.price-down {
+          color: #10b981;
+        }
+
+        .product-sparkline {
+          flex-shrink: 0;
         }
 
         .product-actions {
           display: flex;
           gap: 0.5rem;
-          margin-top: auto;
+          flex-shrink: 0;
         }
 
         .product-actions .btn {
-          flex: 1;
-          padding: 0.5rem;
-          font-size: 0.875rem;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.8125rem;
+        }
+
+        @media (max-width: 768px) {
+          .product-list-item {
+            flex-wrap: wrap;
+          }
+
+          .product-info {
+            order: 1;
+            flex-basis: calc(100% - 80px);
+          }
+
+          .product-thumbnail,
+          .product-thumbnail-placeholder {
+            order: 0;
+          }
+
+          .product-price-section {
+            order: 2;
+            flex-basis: auto;
+          }
+
+          .product-sparkline {
+            order: 3;
+            flex-basis: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: 0.5rem;
+          }
+
+          .product-actions {
+            order: 4;
+            flex-basis: 100%;
+            margin-top: 0.5rem;
+          }
+
+          .product-actions .btn {
+            flex: 1;
+          }
         }
       `}</style>
 
@@ -124,33 +197,48 @@ export default function ProductCard({ product, onDelete }: ProductCardProps) {
         <img
           src={product.image_url}
           alt={product.name || 'Product'}
-          className="product-image"
+          className="product-thumbnail"
         />
       ) : (
-        <div className="product-image-placeholder">📦</div>
+        <div className="product-thumbnail-placeholder">📦</div>
       )}
 
-      <div className="product-content">
+      <div className="product-info">
         <h3 className="product-name">{product.name || 'Unknown Product'}</h3>
-        <p className="product-url">{truncateUrl(product.url)}</p>
-        <div className="product-price">
-          {formatPrice(product.current_price, product.currency)}
-        </div>
-        <p className="product-meta">
-          Last checked: {formatDate(product.last_checked)}
-        </p>
+        <p className="product-source">{truncateUrl(product.url)}</p>
+      </div>
 
-        <div className="product-actions">
-          <Link to={`/product/${product.id}`} className="btn btn-primary">
-            View Details
-          </Link>
-          <button
-            className="btn btn-danger"
-            onClick={() => onDelete(product.id)}
-          >
-            Delete
-          </button>
-        </div>
+      <div className="product-price-section">
+        <span className="product-current-price">
+          {formatPrice(product.current_price, product.currency)}
+        </span>
+        {product.price_change_7d !== null && product.price_change_7d !== undefined && (
+          <span className={`product-price-change ${priceChangeClass}`}>
+            {formatPriceChange(product.price_change_7d)} (7d)
+          </span>
+        )}
+      </div>
+
+      <div className="product-sparkline">
+        <Sparkline
+          data={product.sparkline || []}
+          width={100}
+          height={36}
+          showTrend={false}
+        />
+      </div>
+
+      <div className="product-actions">
+        <Link to={`/product/${product.id}`} className="btn btn-primary">
+          View
+        </Link>
+        <button
+          className="btn btn-danger"
+          onClick={() => onDelete(product.id)}
+          title="Delete"
+        >
+          ✕
+        </button>
       </div>
     </div>
   );

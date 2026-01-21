@@ -8,11 +8,11 @@ const router = Router();
 // All routes require authentication
 router.use(authMiddleware);
 
-// Get all products for the authenticated user
+// Get all products for the authenticated user (with sparkline data)
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const products = await productQueries.findByUserId(userId);
+    const products = await productQueries.findByUserIdWithSparkline(userId);
     res.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);

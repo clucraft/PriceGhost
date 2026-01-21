@@ -51,6 +51,16 @@ export interface ProductWithLatestPrice extends Product {
   currency: string | null;
 }
 
+export interface SparklinePoint {
+  price: number;
+  recorded_at: Date;
+}
+
+export interface ProductWithSparkline extends ProductWithLatestPrice {
+  sparkline: SparklinePoint[];
+  price_change_7d: number | null;
+}
+
 export const productQueries = {
   findByUserId: async (userId: number): Promise<ProductWithLatestPrice[]> => {
     const result = await pool.query(
@@ -67,6 +77,65 @@ export const productQueries = {
       [userId]
     );
     return result.rows;
+  },
+
+  findByUserIdWithSparkline: async (userId: number): Promise<ProductWithSparkline[]> => {
+    // Get all products with current price
+    const productsResult = await pool.query(
+      `SELECT p.*, ph.price as current_price, ph.currency
+       FROM products p
+       LEFT JOIN LATERAL (
+         SELECT price, currency FROM price_history
+         WHERE product_id = p.id
+         ORDER BY recorded_at DESC
+         LIMIT 1
+       ) ph ON true
+       WHERE p.user_id = $1
+       ORDER BY p.created_at DESC`,
+      [userId]
+    );
+
+    const products = productsResult.rows;
+    if (products.length === 0) return [];
+
+    // Get sparkline data for all products (last 7 days)
+    const productIds = products.map((p: Product) => p.id);
+    const sparklineResult = await pool.query(
+      `SELECT product_id, price, recorded_at
+       FROM price_history
+       WHERE product_id = ANY($1)
+       AND recorded_at >= CURRENT_TIMESTAMP - INTERVAL '7 days'
+       ORDER BY product_id, recorded_at ASC`,
+      [productIds]
+    );
+
+    // Group sparkline data by product
+    const sparklineMap = new Map<number, SparklinePoint[]>();
+    for (const row of sparklineResult.rows) {
+      const points = sparklineMap.get(row.product_id) || [];
+      points.push({ price: row.price, recorded_at: row.recorded_at });
+      sparklineMap.set(row.product_id, points);
+    }
+
+    // Combine products with sparkline data
+    return products.map((product: ProductWithLatestPrice) => {
+      const sparkline = sparklineMap.get(product.id) || [];
+      let priceChange7d: number | null = null;
+
+      if (sparkline.length >= 2) {
+        const firstPrice = parseFloat(String(sparkline[0].price));
+        const lastPrice = parseFloat(String(sparkline[sparkline.length - 1].price));
+        if (firstPrice > 0) {
+          priceChange7d = ((lastPrice - firstPrice) / firstPrice) * 100;
+        }
+      }
+
+      return {
+        ...product,
+        sparkline,
+        price_change_7d: priceChange7d,
+      };
+    });
   },
 
   findById: async (id: number, userId: number): Promise<ProductWithLatestPrice | null> => {

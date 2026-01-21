@@ -41,6 +41,11 @@ export const authApi = {
 };
 
 // Products API
+export interface SparklinePoint {
+  price: number;
+  recorded_at: string;
+}
+
 export interface Product {
   id: number;
   user_id: number;
@@ -52,6 +57,8 @@ export interface Product {
   created_at: string;
   current_price: number | null;
   currency: string | null;
+  sparkline?: SparklinePoint[];
+  price_change_7d?: number | null;
 }
 
 export interface ProductWithStats extends Product {
