@@ -102,7 +102,11 @@ export default function Layout({ children }: LayoutProps) {
           background: var(--background);
           border: 1px solid var(--border);
           border-radius: 0.5rem;
-          padding: 0.5rem;
+          padding: 0 0.75rem;
+          height: 42px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           cursor: pointer;
           font-size: 1.25rem;
           line-height: 1;
@@ -131,7 +135,8 @@ export default function Layout({ children }: LayoutProps) {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
+          padding: 0 0.75rem;
+          height: 42px;
           background: var(--background);
           border: 1px solid var(--border);
           border-radius: 0.5rem;
