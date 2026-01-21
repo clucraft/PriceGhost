@@ -315,13 +315,92 @@ const siteScrapers: SiteScraper[] = [
   {
     match: (url) => /newegg\.com/i.test(url),
     scrape: ($) => {
-      const price = parsePrice($('.price-current').text().trim()) ||
-                    parsePrice($('[itemprop="price"]').attr('content') || '');
+      // Try multiple price selectors
+      const priceSelectors = [
+        '.price-current',
+        '.price-current strong',
+        '[itemprop="price"]',
+        '.product-price .price-current',
+        '.product-buy-box .price-current',
+        '.price-main-product .price-current',
+      ];
 
-      const name = $('h1.product-title').text().trim() || null;
-      const imageUrl = $('img.product-view-img-original').attr('src') || null;
+      let price: ParsedPrice | null = null;
+      for (const selector of priceSelectors) {
+        const el = $(selector).first();
+        if (el.length) {
+          // For price-current, combine the dollar and cents parts
+          if (selector.includes('price-current')) {
+            const strong = el.find('strong').text().trim() || el.text().trim();
+            const sup = el.find('sup').text().trim();
+            if (strong) {
+              const priceText = `$${strong}${sup ? '.' + sup : ''}`;
+              price = parsePrice(priceText);
+              if (price) break;
+            }
+          }
+          // Try content attribute for itemprop
+          const content = el.attr('content');
+          if (content) {
+            price = parsePrice(content);
+            if (price) break;
+          }
+          // Try text content
+          price = parsePrice(el.text().trim());
+          if (price) break;
+        }
+      }
 
-      return { name, price, imageUrl };
+      // Also try JSON-LD data
+      if (!price) {
+        try {
+          const jsonLd = $('script[type="application/ld+json"]').first().html();
+          if (jsonLd) {
+            const data = JSON.parse(jsonLd);
+            if (data.offers?.price) {
+              price = {
+                price: parseFloat(String(data.offers.price)),
+                currency: data.offers.priceCurrency || 'USD',
+              };
+            }
+          }
+        } catch (_e) {
+          // Ignore JSON parse errors
+        }
+      }
+
+      const name = $('h1.product-title').text().trim() ||
+                   $('.product-title').text().trim() ||
+                   $('[itemprop="name"]').text().trim() ||
+                   null;
+
+      const imageUrl = $('img.product-view-img-original').attr('src') ||
+                       $('.product-view-img-original').attr('src') ||
+                       $('[itemprop="image"]').attr('content') ||
+                       null;
+
+      // Stock status detection for Newegg
+      let stockStatus: StockStatus = 'unknown';
+      const buyButton = $('.btn-primary.btn-wide').text().toLowerCase();
+      const soldOutBanner = $('.product-inventory').text().toLowerCase();
+      const outOfStockText = $('.product-flag-text').text().toLowerCase();
+
+      if (
+        soldOutBanner.includes('out of stock') ||
+        soldOutBanner.includes('sold out') ||
+        outOfStockText.includes('out of stock') ||
+        $('.product-buy-box .btn-message-error').length > 0
+      ) {
+        stockStatus = 'out_of_stock';
+      } else if (
+        buyButton.includes('add to cart') ||
+        buyButton.includes('buy now') ||
+        $('.product-buy-box .btn-primary').length > 0
+      ) {
+        stockStatus = 'in_stock';
+      }
+
+      return { name, price, imageUrl, stockStatus };
     },
   },
 
