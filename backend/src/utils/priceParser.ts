@@ -107,15 +107,23 @@ export function findMostLikelyPrice(prices: ParsedPrice[]): ParsedPrice | null {
   if (prices.length === 0) return null;
   if (prices.length === 1) return prices[0];
 
-  // Filter out very small prices (likely not product prices)
-  const validPrices = prices.filter((p) => p.price >= 0.99);
+  // Filter out very small prices (likely coupons, savings amounts, not actual product prices)
+  // Most real products cost at least $2-3, and coupon amounts are often $1-5
+  const validPrices = prices.filter((p) => p.price >= 5);
 
-  if (validPrices.length === 0) return prices[0];
+  // If no prices above $5, try with a lower threshold but above typical coupon amounts
+  if (validPrices.length === 0) {
+    const lowThresholdPrices = prices.filter((p) => p.price >= 2);
+    if (lowThresholdPrices.length > 0) {
+      lowThresholdPrices.sort((a, b) => a.price - b.price);
+      return lowThresholdPrices[0];
+    }
+    // Fall back to original list if nothing matches
+    return prices[0];
+  }
 
-  // Sort by price and pick the middle one (often the actual price)
-  // This helps avoid picking shipping costs or discounts
+  // Sort by price - the lowest valid price is often the sale/current price
   validPrices.sort((a, b) => a.price - b.price);
 
-  // Return the first (lowest) valid price - often the current/sale price
   return validPrices[0];
 }

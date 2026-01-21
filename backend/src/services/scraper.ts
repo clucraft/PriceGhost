@@ -24,26 +24,101 @@ const siteScrapers: SiteScraper[] = [
   {
     match: (url) => /amazon\.(com|co\.uk|ca|de|fr|es|it|co\.jp|in|com\.au)/i.test(url),
     scrape: ($) => {
-      // Price selectors in order of preference (sale price first)
-      const priceSelectors = [
-        '#corePrice_feature_div .a-price .a-offscreen',
-        '#corePriceDisplay_desktop_feature_div .a-price .a-offscreen',
-        '#priceblock_dealprice',
-        '#priceblock_saleprice',
-        '#priceblock_ourprice',
-        '.a-price .a-offscreen',
-        '#price_inside_buybox',
-        '#newBuyBoxPrice',
-        'span[data-a-color="price"] .a-offscreen',
+      // Helper to check if element is inside a coupon/savings container
+      const isInCouponContainer = (el: ReturnType<typeof $>) => {
+        const parents = el.parents().toArray();
+        for (const parent of parents) {
+          const id = $(parent).attr('id') || '';
+          const className = $(parent).attr('class') || '';
+          const text = $(parent).text().toLowerCase();
+          if (/coupon|savings|save\s*\$|clipcoupon|promoprice/i.test(id + className)) {
+            return true;
+          }
+          // Check if the immediate container mentions "save" or "coupon"
+          if (text.includes('save $') || text.includes('coupon') || text.includes('clip')) {
+            // Only consider it a coupon if it's a small container
+            if (text.length < 100) return true;
+          }
+        }
+        return false;
+      };
+
+      // Try to get the main displayed price from specific containers first
+      // These are the primary price display areas on Amazon
+      const primaryPriceContainers = [
+        '#corePrice_feature_div',
+        '#corePriceDisplay_desktop_feature_div',
+        '#apex_desktop_newAccordionRow',
+        '#apex_offerDisplay_desktop',
       ];
 
       let price: ParsedPrice | null = null;
-      for (const selector of priceSelectors) {
-        const el = $(selector).first();
-        if (el.length) {
+
+      // First, try the primary price containers
+      for (const containerId of primaryPriceContainers) {
+        const container = $(containerId);
+        if (!container.length) continue;
+
+        // Look for the main price display (not savings/coupons)
+        const priceElements = container.find('.a-price .a-offscreen');
+
+        for (let i = 0; i < priceElements.length; i++) {
+          const el = $(priceElements[i]);
+
+          // Skip if this is inside a coupon container
+          if (isInCouponContainer(el)) continue;
+
+          // Skip if the parent has "savings" or similar class
+          const parentClass = el.parent().attr('class') || '';
+          if (/savings|coupon|save/i.test(parentClass)) continue;
+
           const text = el.text().trim();
-          price = parsePrice(text);
-          if (price) break;
+          const parsed = parsePrice(text);
+
+          // Validate the price is reasonable (not a $1 coupon)
+          if (parsed && parsed.price >= 2) {
+            price = parsed;
+            break;
+          }
+        }
+
+        if (price) break;
+      }
+
+      // Fallback: try other known price selectors
+      if (!price) {
+        const fallbackSelectors = [
+          '#priceblock_dealprice',
+          '#priceblock_saleprice',
+          '#priceblock_ourprice',
+          '#price_inside_buybox',
+          '#newBuyBoxPrice',
+          'span[data-a-color="price"] .a-offscreen',
+        ];
+
+        for (const selector of fallbackSelectors) {
+          const el = $(selector).first();
+          if (el.length && !isInCouponContainer(el)) {
+            const text = el.text().trim();
+            const parsed = parsePrice(text);
+            if (parsed && parsed.price >= 2) {
+              price = parsed;
+              break;
+            }
+          }
+        }
+      }
+
+      // Last resort: look for the whole/fraction price format
+      if (!price) {
+        const whole = $('#corePrice_feature_div .a-price-whole').first().text().replace(',', '');
+        const fraction = $('#corePrice_feature_div .a-price-fraction').first().text();
+        if (whole) {
+          const priceStr = `$${whole}${fraction ? '.' + fraction : ''}`;
+          const parsed = parsePrice(priceStr);
+          if (parsed && parsed.price >= 2) {
+            price = parsed;
+          }
         }
       }
 
