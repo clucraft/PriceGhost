@@ -57,6 +57,8 @@ export interface Product {
   refresh_interval: number;
   last_checked: string | null;
   stock_status: StockStatus;
+  price_drop_threshold: number | null;
+  notify_back_in_stock: boolean;
   created_at: string;
   current_price: number | null;
   currency: string | null;
@@ -89,8 +91,12 @@ export const productsApi = {
   create: (url: string, refreshInterval?: number) =>
     api.post<Product>('/products', { url, refresh_interval: refreshInterval }),
 
-  update: (id: number, data: { name?: string; refresh_interval?: number }) =>
-    api.put<Product>(`/products/${id}`, data),
+  update: (id: number, data: {
+    name?: string;
+    refresh_interval?: number;
+    price_drop_threshold?: number | null;
+    notify_back_in_stock?: boolean;
+  }) => api.put<Product>(`/products/${id}`, data),
 
   delete: (id: number) => api.delete(`/products/${id}`),
 };
@@ -107,6 +113,30 @@ export const pricesApi = {
     api.post<{ message: string; price: PriceHistory }>(
       `/products/${productId}/refresh`
     ),
+};
+
+// Settings API
+export interface NotificationSettings {
+  telegram_configured: boolean;
+  telegram_chat_id: string | null;
+  discord_configured: boolean;
+}
+
+export const settingsApi = {
+  getNotifications: () =>
+    api.get<NotificationSettings>('/settings/notifications'),
+
+  updateNotifications: (data: {
+    telegram_bot_token?: string | null;
+    telegram_chat_id?: string | null;
+    discord_webhook_url?: string | null;
+  }) => api.put<NotificationSettings & { message: string }>('/settings/notifications', data),
+
+  testTelegram: () =>
+    api.post<{ message: string }>('/settings/notifications/test/telegram'),
+
+  testDiscord: () =>
+    api.post<{ message: string }>('/settings/notifications/test/discord'),
 };
 
 export default api;

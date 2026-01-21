@@ -1,6 +1,7 @@
 import cron from 'node-cron';
-import { productQueries, priceHistoryQueries } from '../models';
+import { productQueries, priceHistoryQueries, userQueries } from '../models';
 import { scrapeProduct } from './scraper';
+import { sendNotifications, NotificationPayload } from './notifications';
 
 let isRunning = false;
 
@@ -24,12 +25,36 @@ async function checkPrices(): Promise<void> {
 
         const scrapedData = await scrapeProduct(product.url);
 
+        // Check for back-in-stock notification
+        const wasOutOfStock = product.stock_status === 'out_of_stock';
+        const nowInStock = scrapedData.stockStatus === 'in_stock';
+
         // Update stock status
         if (scrapedData.stockStatus !== product.stock_status) {
           await productQueries.updateStockStatus(product.id, scrapedData.stockStatus);
           console.log(
             `Stock status changed for product ${product.id}: ${product.stock_status} -> ${scrapedData.stockStatus}`
           );
+
+          // Send back-in-stock notification
+          if (wasOutOfStock && nowInStock && product.notify_back_in_stock) {
+            try {
+              const userSettings = await userQueries.getNotificationSettings(product.user_id);
+              if (userSettings) {
+                const payload: NotificationPayload = {
+                  productName: product.name || 'Unknown Product',
+                  productUrl: product.url,
+                  type: 'back_in_stock',
+                  newPrice: scrapedData.price?.price,
+                  currency: scrapedData.price?.currency || 'USD',
+                };
+                await sendNotifications(userSettings, payload);
+                console.log(`Back-in-stock notification sent for product ${product.id}`);
+              }
+            } catch (notifyError) {
+              console.error(`Failed to send back-in-stock notification for product ${product.id}:`, notifyError);
+            }
+          }
         }
 
         if (scrapedData.price) {
@@ -38,6 +63,34 @@ async function checkPrices(): Promise<void> {
 
           // Only record if price has changed or it's the first entry
           if (!latestPrice || latestPrice.price !== scrapedData.price.price) {
+            // Check for price drop notification before recording
+            if (latestPrice && product.price_drop_threshold) {
+              const oldPrice = parseFloat(String(latestPrice.price));
+              const newPrice = scrapedData.price.price;
+              const priceDrop = oldPrice - newPrice;
+
+              if (priceDrop >= product.price_drop_threshold) {
+                try {
+                  const userSettings = await userQueries.getNotificationSettings(product.user_id);
+                  if (userSettings) {
+                    const payload: NotificationPayload = {
+                      productName: product.name || 'Unknown Product',
+                      productUrl: product.url,
+                      type: 'price_drop',
+                      oldPrice: oldPrice,
+                      newPrice: newPrice,
+                      currency: scrapedData.price.currency,
+                      threshold: product.price_drop_threshold,
+                    };
+                    await sendNotifications(userSettings, payload);
+                    console.log(`Price drop notification sent for product ${product.id}: ${priceDrop} drop`);
+                  }
+                } catch (notifyError) {
+                  console.error(`Failed to send price drop notification for product ${product.id}:`, notifyError);
+                }
+              }
+            }
+
             await priceHistoryQueries.create(
               product.id,
               scrapedData.price.price,

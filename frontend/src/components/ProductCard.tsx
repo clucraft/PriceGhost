@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '../api/client';
 import Sparkline from './Sparkline';
@@ -5,9 +6,20 @@ import Sparkline from './Sparkline';
 interface ProductCardProps {
   product: Product;
   onDelete: (id: number) => void;
+  onRefresh: (id: number) => Promise<void>;
 }
 
-export default function ProductCard({ product, onDelete }: ProductCardProps) {
+export default function ProductCard({ product, onDelete, onRefresh }: ProductCardProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await onRefresh(product.id);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const formatPrice = (price: number | string | null, currency: string | null) => {
     if (price === null || price === undefined) return 'N/A';
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
@@ -185,6 +197,28 @@ export default function ProductCard({ product, onDelete }: ProductCardProps) {
           font-size: 0.8125rem;
         }
 
+        .product-actions .btn-icon {
+          padding: 0.5rem;
+          min-width: unset;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .product-actions .btn-icon svg {
+          width: 16px;
+          height: 16px;
+        }
+
+        .product-actions .btn-icon.refreshing svg {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
           .product-list-item {
             flex-wrap: wrap;
@@ -269,15 +303,30 @@ export default function ProductCard({ product, onDelete }: ProductCardProps) {
       </div>
 
       <div className="product-actions">
+        <button
+          className={`btn btn-secondary btn-icon ${isRefreshing ? 'refreshing' : ''}`}
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          title="Refresh price"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 21h5v-5" />
+          </svg>
+        </button>
         <Link to={`/product/${product.id}`} className="btn btn-primary">
           View
         </Link>
         <button
-          className="btn btn-danger"
+          className="btn btn-danger btn-icon"
           onClick={() => onDelete(product.id)}
           title="Delete"
         >
-          ✕
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
         </button>
       </div>
     </div>

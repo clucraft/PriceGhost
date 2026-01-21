@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import productRoutes from './routes/products';
 import priceRoutes from './routes/prices';
+import settingsRoutes from './routes/settings';
 import { startScheduler } from './services/scheduler';
 
 // Load environment variables
@@ -26,6 +27,7 @@ app.get('/health', (_, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/products', priceRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Error handling middleware
 app.use(

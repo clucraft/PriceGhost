@@ -5,7 +5,16 @@ export interface User {
   id: number;
   email: string;
   password_hash: string;
+  telegram_bot_token: string | null;
+  telegram_chat_id: string | null;
+  discord_webhook_url: string | null;
   created_at: Date;
+}
+
+export interface NotificationSettings {
+  telegram_bot_token: string | null;
+  telegram_chat_id: string | null;
+  discord_webhook_url: string | null;
 }
 
 export const userQueries = {
@@ -32,6 +41,46 @@ export const userQueries = {
     );
     return result.rows[0];
   },
+
+  getNotificationSettings: async (id: number): Promise<NotificationSettings | null> => {
+    const result = await pool.query(
+      'SELECT telegram_bot_token, telegram_chat_id, discord_webhook_url FROM users WHERE id = $1',
+      [id]
+    );
+    return result.rows[0] || null;
+  },
+
+  updateNotificationSettings: async (
+    id: number,
+    settings: Partial<NotificationSettings>
+  ): Promise<NotificationSettings | null> => {
+    const fields: string[] = [];
+    const values: (string | null)[] = [];
+    let paramIndex = 1;
+
+    if (settings.telegram_bot_token !== undefined) {
+      fields.push(`telegram_bot_token = $${paramIndex++}`);
+      values.push(settings.telegram_bot_token);
+    }
+    if (settings.telegram_chat_id !== undefined) {
+      fields.push(`telegram_chat_id = $${paramIndex++}`);
+      values.push(settings.telegram_chat_id);
+    }
+    if (settings.discord_webhook_url !== undefined) {
+      fields.push(`discord_webhook_url = $${paramIndex++}`);
+      values.push(settings.discord_webhook_url);
+    }
+
+    if (fields.length === 0) return null;
+
+    values.push(id.toString());
+    const result = await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}
+       RETURNING telegram_bot_token, telegram_chat_id, discord_webhook_url`,
+      values
+    );
+    return result.rows[0] || null;
+  },
 };
 
 // Product types and queries
@@ -46,6 +95,8 @@ export interface Product {
   refresh_interval: number;
   last_checked: Date | null;
   stock_status: StockStatus;
+  price_drop_threshold: number | null;
+  notify_back_in_stock: boolean;
   created_at: Date;
 }
 
@@ -177,10 +228,15 @@ export const productQueries = {
   update: async (
     id: number,
     userId: number,
-    updates: { name?: string; refresh_interval?: number }
+    updates: {
+      name?: string;
+      refresh_interval?: number;
+      price_drop_threshold?: number | null;
+      notify_back_in_stock?: boolean;
+    }
   ): Promise<Product | null> => {
     const fields: string[] = [];
-    const values: (string | number)[] = [];
+    const values: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
     if (updates.name !== undefined) {
@@ -190,6 +246,14 @@ export const productQueries = {
     if (updates.refresh_interval !== undefined) {
       fields.push(`refresh_interval = $${paramIndex++}`);
       values.push(updates.refresh_interval);
+    }
+    if (updates.price_drop_threshold !== undefined) {
+      fields.push(`price_drop_threshold = $${paramIndex++}`);
+      values.push(updates.price_drop_threshold);
+    }
+    if (updates.notify_back_in_stock !== undefined) {
+      fields.push(`notify_back_in_stock = $${paramIndex++}`);
+      values.push(updates.notify_back_in_stock);
     }
 
     if (fields.length === 0) return null;

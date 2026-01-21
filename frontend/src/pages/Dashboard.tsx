@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import ProductCard from '../components/ProductCard';
 import ProductForm from '../components/ProductForm';
-import { productsApi, Product } from '../api/client';
+import { productsApi, pricesApi, Product } from '../api/client';
 
 export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -40,6 +40,16 @@ export default function Dashboard() {
       setProducts((prev) => prev.filter((p) => p.id !== id));
     } catch {
       alert('Failed to delete product');
+    }
+  };
+
+  const handleRefreshProduct = async (id: number) => {
+    try {
+      await pricesApi.refresh(id);
+      // Refresh the products list to get updated data
+      await fetchProducts();
+    } catch {
+      alert('Failed to refresh price');
     }
   };
 
@@ -256,6 +266,7 @@ export default function Dashboard() {
                 key={product.id}
                 product={product}
                 onDelete={handleDeleteProduct}
+                onRefresh={handleRefreshProduct}
               />
             ))}
           </div>

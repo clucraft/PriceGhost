@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import ProductDetail from './pages/ProductDetail';
+import Settings from './pages/Settings';
 
 function ThemeInitializer({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -98,6 +99,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ProductDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         }
       />

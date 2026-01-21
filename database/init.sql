@@ -5,8 +5,24 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
+  telegram_bot_token VARCHAR(255),
+  telegram_chat_id VARCHAR(255),
+  discord_webhook_url TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migration: Add notification columns to users if they don't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'telegram_bot_token'
+  ) THEN
+    ALTER TABLE users ADD COLUMN telegram_bot_token VARCHAR(255);
+    ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR(255);
+    ALTER TABLE users ADD COLUMN discord_webhook_url TEXT;
+  END IF;
+END $$;
 
 -- Products table
 CREATE TABLE IF NOT EXISTS products (
@@ -18,6 +34,8 @@ CREATE TABLE IF NOT EXISTS products (
   refresh_interval INTEGER DEFAULT 3600,
   last_checked TIMESTAMP,
   stock_status VARCHAR(20) DEFAULT 'unknown',
+  price_drop_threshold DECIMAL(10,2),
+  notify_back_in_stock BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, url)
 );
@@ -30,6 +48,18 @@ BEGIN
     WHERE table_name = 'products' AND column_name = 'stock_status'
   ) THEN
     ALTER TABLE products ADD COLUMN stock_status VARCHAR(20) DEFAULT 'unknown';
+  END IF;
+END $$;
+
+-- Migration: Add notification columns to products if they don't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'products' AND column_name = 'price_drop_threshold'
+  ) THEN
+    ALTER TABLE products ADD COLUMN price_drop_threshold DECIMAL(10,2);
+    ALTER TABLE products ADD COLUMN notify_back_in_stock BOOLEAN DEFAULT false;
   END IF;
 END $$;
 

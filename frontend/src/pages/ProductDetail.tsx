@@ -5,8 +5,10 @@ import PriceChart from '../components/PriceChart';
 import {
   productsApi,
   pricesApi,
+  settingsApi,
   ProductWithStats,
   PriceHistory,
+  NotificationSettings,
 } from '../api/client';
 
 export default function ProductDetail() {
@@ -17,7 +19,22 @@ export default function ProductDetail() {
   const [prices, setPrices] = useState<PriceHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
   const [error, setError] = useState('');
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
+  const [priceDropThreshold, setPriceDropThreshold] = useState<string>('');
+  const [notifyBackInStock, setNotifyBackInStock] = useState(false);
+
+  const REFRESH_INTERVALS = [
+    { value: 1800, label: '30 minutes' },
+    { value: 3600, label: '1 hour' },
+    { value: 7200, label: '2 hours' },
+    { value: 14400, label: '4 hours' },
+    { value: 21600, label: '6 hours' },
+    { value: 43200, label: '12 hours' },
+    { value: 86400, label: '24 hours' },
+  ];
 
   const productId = parseInt(id || '0', 10);
 
@@ -29,6 +46,11 @@ export default function ProductDetail() {
       ]);
       setProduct(productRes.data);
       setPrices(pricesRes.data.prices);
+      // Initialize notification form fields from product data
+      if (productRes.data.price_drop_threshold !== null && productRes.data.price_drop_threshold !== undefined) {
+        setPriceDropThreshold(productRes.data.price_drop_threshold.toString());
+      }
+      setNotifyBackInStock(productRes.data.notify_back_in_stock || false);
     } catch {
       setError('Failed to load product details');
     } finally {
@@ -36,9 +58,19 @@ export default function ProductDetail() {
     }
   };
 
+  const fetchNotificationSettings = async () => {
+    try {
+      const response = await settingsApi.getNotifications();
+      setNotificationSettings(response.data);
+    } catch {
+      // Silently fail - notifications just won't be shown
+    }
+  };
+
   useEffect(() => {
     if (productId) {
       fetchData(30);
+      fetchNotificationSettings();
     }
   }, [productId]);
 
@@ -69,6 +101,40 @@ export default function ProductDetail() {
 
   const handleRangeChange = (days: number | undefined) => {
     fetchData(days);
+  };
+
+  const handleRefreshIntervalChange = async (newInterval: number) => {
+    if (!product) return;
+    setIsSaving(true);
+    try {
+      await productsApi.update(productId, { refresh_interval: newInterval });
+      setProduct({ ...product, refresh_interval: newInterval });
+    } catch {
+      alert('Failed to update refresh interval');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveNotifications = async () => {
+    if (!product) return;
+    setIsSavingNotifications(true);
+    try {
+      const threshold = priceDropThreshold ? parseFloat(priceDropThreshold) : null;
+      await productsApi.update(productId, {
+        price_drop_threshold: threshold,
+        notify_back_in_stock: notifyBackInStock,
+      });
+      setProduct({
+        ...product,
+        price_drop_threshold: threshold,
+        notify_back_in_stock: notifyBackInStock,
+      });
+    } catch {
+      alert('Failed to save notification settings');
+    } finally {
+      setIsSavingNotifications(false);
+    }
   };
 
   const formatPrice = (price: number | string | null, currency: string | null) => {
@@ -285,6 +351,33 @@ export default function ProductDetail() {
           gap: 0.75rem;
           margin-top: 1.5rem;
         }
+
+        .product-detail-meta-select {
+          padding: 0.375rem 0.5rem;
+          border: 1px solid var(--border);
+          border-radius: 0.375rem;
+          background: var(--surface);
+          color: var(--text);
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: border-color 0.2s;
+        }
+
+        .product-detail-meta-select:hover {
+          border-color: var(--primary);
+        }
+
+        .product-detail-meta-select:focus {
+          outline: none;
+          border-color: var(--primary);
+          box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+        }
+
+        .product-detail-meta-select:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
       `}</style>
 
       <div className="product-detail-header">
@@ -355,11 +448,18 @@ export default function ProductDetail() {
               </div>
               <div className="product-detail-meta-item">
                 <span className="product-detail-meta-label">Check Interval</span>
-                <span className="product-detail-meta-value">
-                  {product.refresh_interval < 3600
-                    ? `${product.refresh_interval / 60} minutes`
-                    : `${product.refresh_interval / 3600} hour(s)`}
-                </span>
+                <select
+                  className="product-detail-meta-select"
+                  value={product.refresh_interval}
+                  onChange={(e) => handleRefreshIntervalChange(parseInt(e.target.value, 10))}
+                  disabled={isSaving}
+                >
+                  {REFRESH_INTERVALS.map((interval) => (
+                    <option key={interval.value} value={interval.value}>
+                      {interval.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="product-detail-meta-item">
                 <span className="product-detail-meta-label">Tracking Since</span>
@@ -400,6 +500,212 @@ export default function ProductDetail() {
         currency={product.currency || 'USD'}
         onRangeChange={handleRangeChange}
       />
+
+      {notificationSettings && (notificationSettings.telegram_configured || notificationSettings.discord_configured) && (
+        <>
+          <style>{`
+            .notification-settings-card {
+              background: var(--surface);
+              border-radius: 0.75rem;
+              box-shadow: var(--shadow);
+              padding: 1.5rem;
+              margin-top: 2rem;
+            }
+
+            .notification-settings-header {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              margin-bottom: 1rem;
+            }
+
+            .notification-settings-icon {
+              font-size: 1.5rem;
+            }
+
+            .notification-settings-title {
+              font-size: 1.125rem;
+              font-weight: 600;
+              color: var(--text);
+            }
+
+            .notification-settings-channels {
+              display: flex;
+              gap: 0.5rem;
+              margin-left: auto;
+            }
+
+            .notification-channel-badge {
+              padding: 0.25rem 0.5rem;
+              border-radius: 0.25rem;
+              font-size: 0.75rem;
+              font-weight: 600;
+              background: #f0fdf4;
+              color: #16a34a;
+            }
+
+            [data-theme="dark"] .notification-channel-badge {
+              background: rgba(22, 163, 74, 0.2);
+              color: #4ade80;
+            }
+
+            .notification-settings-description {
+              color: var(--text-muted);
+              font-size: 0.875rem;
+              margin-bottom: 1.5rem;
+              line-height: 1.5;
+            }
+
+            .notification-form-row {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 1.5rem;
+              margin-bottom: 1rem;
+            }
+
+            @media (max-width: 640px) {
+              .notification-form-row {
+                grid-template-columns: 1fr;
+              }
+            }
+
+            .notification-form-group {
+              display: flex;
+              flex-direction: column;
+              gap: 0.375rem;
+            }
+
+            .notification-form-group label {
+              font-size: 0.875rem;
+              font-weight: 500;
+              color: var(--text);
+            }
+
+            .notification-form-group input[type="number"] {
+              padding: 0.625rem 0.75rem;
+              border: 1px solid var(--border);
+              border-radius: 0.375rem;
+              background: var(--background);
+              color: var(--text);
+              font-size: 0.875rem;
+            }
+
+            .notification-form-group input[type="number"]:focus {
+              outline: none;
+              border-color: var(--primary);
+              box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+            }
+
+            .notification-form-group .hint {
+              font-size: 0.75rem;
+              color: var(--text-muted);
+            }
+
+            .notification-checkbox-group {
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              padding: 0.75rem;
+              background: var(--background);
+              border-radius: 0.375rem;
+              cursor: pointer;
+            }
+
+            .notification-checkbox-group:hover {
+              background: var(--border);
+            }
+
+            .notification-checkbox-group input[type="checkbox"] {
+              width: 1.125rem;
+              height: 1.125rem;
+              accent-color: var(--primary);
+              cursor: pointer;
+            }
+
+            .notification-checkbox-label {
+              display: flex;
+              flex-direction: column;
+              gap: 0.125rem;
+            }
+
+            .notification-checkbox-label span:first-child {
+              font-size: 0.875rem;
+              font-weight: 500;
+              color: var(--text);
+            }
+
+            .notification-checkbox-label span:last-child {
+              font-size: 0.75rem;
+              color: var(--text-muted);
+            }
+
+            .notification-form-actions {
+              margin-top: 1rem;
+            }
+          `}</style>
+
+          <div className="notification-settings-card">
+            <div className="notification-settings-header">
+              <span className="notification-settings-icon">🔔</span>
+              <h2 className="notification-settings-title">Notification Settings</h2>
+              <div className="notification-settings-channels">
+                {notificationSettings.telegram_configured && (
+                  <span className="notification-channel-badge">Telegram</span>
+                )}
+                {notificationSettings.discord_configured && (
+                  <span className="notification-channel-badge">Discord</span>
+                )}
+              </div>
+            </div>
+            <p className="notification-settings-description">
+              Get notified when this product's price drops or comes back in stock.
+              Notifications will be sent to your configured channels.
+            </p>
+
+            <div className="notification-form-row">
+              <div className="notification-form-group">
+                <label>Price Drop Threshold</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={priceDropThreshold}
+                  onChange={(e) => setPriceDropThreshold(e.target.value)}
+                  placeholder="Enter amount (e.g., 5.00)"
+                />
+                <span className="hint">
+                  Notify when price drops by at least this amount ({product.currency || 'USD'})
+                </span>
+              </div>
+
+              <div className="notification-form-group">
+                <label>Back in Stock Alert</label>
+                <label className="notification-checkbox-group">
+                  <input
+                    type="checkbox"
+                    checked={notifyBackInStock}
+                    onChange={(e) => setNotifyBackInStock(e.target.checked)}
+                  />
+                  <div className="notification-checkbox-label">
+                    <span>Enable back-in-stock notifications</span>
+                    <span>Get notified when this item becomes available</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="notification-form-actions">
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveNotifications}
+                disabled={isSavingNotifications}
+              >
+                {isSavingNotifications ? 'Saving...' : 'Save Notification Settings'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </Layout>
   );
 }
