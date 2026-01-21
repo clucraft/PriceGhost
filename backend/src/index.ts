@@ -6,6 +6,8 @@ import authRoutes from './routes/auth';
 import productRoutes from './routes/products';
 import priceRoutes from './routes/prices';
 import settingsRoutes from './routes/settings';
+import profileRoutes from './routes/profile';
+import adminRoutes from './routes/admin';
 import { startScheduler } from './services/scheduler';
 
 // Load environment variables
@@ -28,6 +30,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/products', priceRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use(

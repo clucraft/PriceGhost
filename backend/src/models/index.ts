@@ -5,9 +5,19 @@ export interface User {
   id: number;
   email: string;
   password_hash: string;
+  name: string | null;
+  is_admin: boolean;
   telegram_bot_token: string | null;
   telegram_chat_id: string | null;
   discord_webhook_url: string | null;
+  created_at: Date;
+}
+
+export interface UserProfile {
+  id: number;
+  email: string;
+  name: string | null;
+  is_admin: boolean;
   created_at: Date;
 }
 
@@ -80,6 +90,99 @@ export const userQueries = {
       values
     );
     return result.rows[0] || null;
+  },
+
+  getProfile: async (id: number): Promise<UserProfile | null> => {
+    const result = await pool.query(
+      'SELECT id, email, name, is_admin, created_at FROM users WHERE id = $1',
+      [id]
+    );
+    return result.rows[0] || null;
+  },
+
+  updateProfile: async (
+    id: number,
+    updates: { name?: string }
+  ): Promise<UserProfile | null> => {
+    const fields: string[] = [];
+    const values: (string | number)[] = [];
+    let paramIndex = 1;
+
+    if (updates.name !== undefined) {
+      fields.push(`name = $${paramIndex++}`);
+      values.push(updates.name);
+    }
+
+    if (fields.length === 0) return null;
+
+    values.push(id);
+    const result = await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}
+       RETURNING id, email, name, is_admin, created_at`,
+      values
+    );
+    return result.rows[0] || null;
+  },
+
+  updatePassword: async (id: number, passwordHash: string): Promise<boolean> => {
+    const result = await pool.query(
+      'UPDATE users SET password_hash = $1 WHERE id = $2',
+      [passwordHash, id]
+    );
+    return (result.rowCount ?? 0) > 0;
+  },
+
+  // Admin queries
+  findAll: async (): Promise<UserProfile[]> => {
+    const result = await pool.query(
+      'SELECT id, email, name, is_admin, created_at FROM users ORDER BY created_at ASC'
+    );
+    return result.rows;
+  },
+
+  delete: async (id: number): Promise<boolean> => {
+    const result = await pool.query(
+      'DELETE FROM users WHERE id = $1',
+      [id]
+    );
+    return (result.rowCount ?? 0) > 0;
+  },
+
+  setAdmin: async (id: number, isAdmin: boolean): Promise<boolean> => {
+    const result = await pool.query(
+      'UPDATE users SET is_admin = $1 WHERE id = $2',
+      [isAdmin, id]
+    );
+    return (result.rowCount ?? 0) > 0;
+  },
+};
+
+// System settings queries
+export const systemSettingsQueries = {
+  get: async (key: string): Promise<string | null> => {
+    const result = await pool.query(
+      'SELECT value FROM system_settings WHERE key = $1',
+      [key]
+    );
+    return result.rows[0]?.value || null;
+  },
+
+  set: async (key: string, value: string): Promise<void> => {
+    await pool.query(
+      `INSERT INTO system_settings (key, value, updated_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP`,
+      [key, value]
+    );
+  },
+
+  getAll: async (): Promise<Record<string, string>> => {
+    const result = await pool.query('SELECT key, value FROM system_settings');
+    const settings: Record<string, string> = {};
+    for (const row of result.rows) {
+      settings[row.key] = row.value;
+    }
+    return settings;
   },
 };
 

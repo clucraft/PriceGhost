@@ -5,11 +5,24 @@ CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
+  name VARCHAR(255),
+  is_admin BOOLEAN DEFAULT false,
   telegram_bot_token VARCHAR(255),
   telegram_chat_id VARCHAR(255),
   discord_webhook_url TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- System settings table
+CREATE TABLE IF NOT EXISTS system_settings (
+  key VARCHAR(255) PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Default system settings
+INSERT INTO system_settings (key, value) VALUES ('registration_enabled', 'true')
+ON CONFLICT (key) DO NOTHING;
 
 -- Migration: Add notification columns to users if they don't exist
 DO $$
@@ -21,6 +34,25 @@ BEGIN
     ALTER TABLE users ADD COLUMN telegram_bot_token VARCHAR(255);
     ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR(255);
     ALTER TABLE users ADD COLUMN discord_webhook_url TEXT;
+  END IF;
+END $$;
+
+-- Migration: Add profile columns to users if they don't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'name'
+  ) THEN
+    ALTER TABLE users ADD COLUMN name VARCHAR(255);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'is_admin'
+  ) THEN
+    ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT false;
+    -- Make the first user an admin
+    UPDATE users SET is_admin = true WHERE id = (SELECT MIN(id) FROM users);
   END IF;
 END $$;
 

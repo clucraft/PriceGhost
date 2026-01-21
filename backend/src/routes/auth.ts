@@ -1,14 +1,32 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import { userQueries } from '../models';
+import { userQueries, systemSettingsQueries } from '../models';
 import { generateToken } from '../middleware/auth';
 
 const router = Router();
+
+// Check if registration is enabled (public endpoint for login page)
+router.get('/registration-status', async (_req: Request, res: Response) => {
+  try {
+    const enabled = await systemSettingsQueries.get('registration_enabled');
+    res.json({ registration_enabled: enabled !== 'false' });
+  } catch (error) {
+    console.error('Error checking registration status:', error);
+    res.json({ registration_enabled: true }); // Default to true on error
+  }
+});
 
 // Register new user
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+
+    // Check if registration is enabled
+    const registrationEnabled = await systemSettingsQueries.get('registration_enabled');
+    if (registrationEnabled === 'false') {
+      res.status(403).json({ error: 'Registration is currently disabled' });
+      return;
+    }
 
     if (!email || !password) {
       res.status(400).json({ error: 'Email and password are required' });
@@ -36,6 +54,13 @@ router.post('/register', async (req: Request, res: Response) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const user = await userQueries.create(email, passwordHash);
+
+    // Make first user an admin
+    const allUsers = await userQueries.findAll();
+    if (allUsers.length === 1) {
+      await userQueries.setAdmin(user.id, true);
+    }
+
     const token = generateToken(user.id);
 
     res.status(201).json({

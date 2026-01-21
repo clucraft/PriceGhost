@@ -38,6 +38,9 @@ export const authApi = {
 
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
+
+  getRegistrationStatus: () =>
+    api.get<{ registration_enabled: boolean }>('/auth/registration-status'),
 };
 
 // Products API
@@ -137,6 +140,47 @@ export const settingsApi = {
 
   testDiscord: () =>
     api.post<{ message: string }>('/settings/notifications/test/discord'),
+};
+
+// Profile API
+export interface UserProfile {
+  id: number;
+  email: string;
+  name: string | null;
+  is_admin: boolean;
+  created_at: string;
+}
+
+export const profileApi = {
+  get: () => api.get<UserProfile>('/profile'),
+
+  update: (data: { name?: string }) =>
+    api.put<UserProfile>('/profile', data),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.put<{ message: string }>('/profile/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+};
+
+// Admin API
+export interface SystemSettings {
+  registration_enabled: string;
+}
+
+export const adminApi = {
+  getUsers: () => api.get<UserProfile[]>('/admin/users'),
+
+  deleteUser: (id: number) => api.delete(`/admin/users/${id}`),
+
+  setUserAdmin: (id: number, isAdmin: boolean) =>
+    api.put(`/admin/users/${id}/admin`, { is_admin: isAdmin }),
+
+  getSettings: () => api.get<SystemSettings>('/admin/settings'),
+
+  updateSettings: (data: { registration_enabled?: boolean }) =>
+    api.put<SystemSettings>('/admin/settings', data),
 };
 
 export default api;
