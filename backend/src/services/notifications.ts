@@ -3,11 +3,12 @@ import axios from 'axios';
 export interface NotificationPayload {
   productName: string;
   productUrl: string;
-  type: 'price_drop' | 'back_in_stock';
+  type: 'price_drop' | 'back_in_stock' | 'target_price';
   oldPrice?: number;
   newPrice?: number;
   currency?: string;
   threshold?: number;
+  targetPrice?: number;
 }
 
 function formatMessage(payload: NotificationPayload): string {
@@ -24,6 +25,16 @@ function formatMessage(payload: NotificationPayload): string {
       `📦 ${payload.productName}\n\n` +
       `💰 Price dropped from ${oldPriceStr} to ${newPriceStr}` +
       (dropAmount ? ` (-${dropAmount})` : '') + `\n\n` +
+      `🔗 ${payload.productUrl}`;
+  }
+
+  if (payload.type === 'target_price') {
+    const newPriceStr = payload.newPrice ? `${currencySymbol}${payload.newPrice.toFixed(2)}` : 'N/A';
+    const targetPriceStr = payload.targetPrice ? `${currencySymbol}${payload.targetPrice.toFixed(2)}` : 'N/A';
+
+    return `🎯 Target Price Reached!\n\n` +
+      `📦 ${payload.productName}\n\n` +
+      `💰 Price is now ${newPriceStr} (your target: ${targetPriceStr})\n\n` +
       `🔗 ${payload.productUrl}`;
   }
 
@@ -81,6 +92,21 @@ export async function sendDiscordNotification(
         fields: [
           { name: 'Old Price', value: oldPriceStr, inline: true },
           { name: 'New Price', value: newPriceStr, inline: true },
+        ],
+        url: payload.productUrl,
+        timestamp: new Date().toISOString(),
+      };
+    } else if (payload.type === 'target_price') {
+      const newPriceStr = payload.newPrice ? `${currencySymbol}${payload.newPrice.toFixed(2)}` : 'N/A';
+      const targetPriceStr = payload.targetPrice ? `${currencySymbol}${payload.targetPrice.toFixed(2)}` : 'N/A';
+
+      embed = {
+        title: '🎯 Target Price Reached!',
+        description: payload.productName,
+        color: 0xf59e0b, // Amber
+        fields: [
+          { name: 'Current Price', value: newPriceStr, inline: true },
+          { name: 'Your Target', value: targetPriceStr, inline: true },
         ],
         url: payload.productUrl,
         timestamp: new Date().toISOString(),

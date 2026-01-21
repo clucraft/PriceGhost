@@ -61,12 +61,14 @@ export interface Product {
   last_checked: string | null;
   stock_status: StockStatus;
   price_drop_threshold: number | null;
+  target_price: number | null;
   notify_back_in_stock: boolean;
   created_at: string;
   current_price: number | null;
   currency: string | null;
   sparkline?: SparklinePoint[];
   price_change_7d?: number | null;
+  min_price?: number | null;
 }
 
 export interface ProductWithStats extends Product {
@@ -98,6 +100,7 @@ export const productsApi = {
     name?: string;
     refresh_interval?: number;
     price_drop_threshold?: number | null;
+    target_price?: number | null;
     notify_back_in_stock?: boolean;
   }) => api.put<Product>(`/products/${id}`, data),
 

@@ -200,6 +200,7 @@ export interface Product {
   next_check_at: Date | null;
   stock_status: StockStatus;
   price_drop_threshold: number | null;
+  target_price: number | null;
   notify_back_in_stock: boolean;
   created_at: Date;
 }
@@ -222,6 +223,7 @@ export interface SparklinePoint {
 export interface ProductWithSparkline extends ProductWithLatestPrice {
   sparkline: SparklinePoint[];
   price_change_7d: number | null;
+  min_price: number | null;
 }
 
 export const productQueries = {
@@ -272,12 +274,27 @@ export const productQueries = {
       [productIds]
     );
 
+    // Get min prices for all products (all-time low)
+    const minPriceResult = await pool.query(
+      `SELECT product_id, MIN(price) as min_price
+       FROM price_history
+       WHERE product_id = ANY($1)
+       GROUP BY product_id`,
+      [productIds]
+    );
+
     // Group sparkline data by product
     const sparklineMap = new Map<number, SparklinePoint[]>();
     for (const row of sparklineResult.rows) {
       const points = sparklineMap.get(row.product_id) || [];
       points.push({ price: row.price, recorded_at: row.recorded_at });
       sparklineMap.set(row.product_id, points);
+    }
+
+    // Map min prices by product
+    const minPriceMap = new Map<number, number>();
+    for (const row of minPriceResult.rows) {
+      minPriceMap.set(row.product_id, parseFloat(row.min_price));
     }
 
     // Combine products with sparkline data
@@ -297,6 +314,7 @@ export const productQueries = {
         ...product,
         sparkline,
         price_change_7d: priceChange7d,
+        min_price: minPriceMap.get(product.id) || null,
       };
     });
   },
@@ -344,6 +362,7 @@ export const productQueries = {
       name?: string;
       refresh_interval?: number;
       price_drop_threshold?: number | null;
+      target_price?: number | null;
       notify_back_in_stock?: boolean;
     }
   ): Promise<Product | null> => {
@@ -362,6 +381,10 @@ export const productQueries = {
     if (updates.price_drop_threshold !== undefined) {
       fields.push(`price_drop_threshold = $${paramIndex++}`);
       values.push(updates.price_drop_threshold);
+    }
+    if (updates.target_price !== undefined) {
+      fields.push(`target_price = $${paramIndex++}`);
+      values.push(updates.target_price);
     }
     if (updates.notify_back_in_stock !== undefined) {
       fields.push(`notify_back_in_stock = $${paramIndex++}`);

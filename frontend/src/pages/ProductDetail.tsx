@@ -24,6 +24,7 @@ export default function ProductDetail() {
   const [error, setError] = useState('');
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [priceDropThreshold, setPriceDropThreshold] = useState<string>('');
+  const [targetPrice, setTargetPrice] = useState<string>('');
   const [notifyBackInStock, setNotifyBackInStock] = useState(false);
 
   const REFRESH_INTERVALS = [
@@ -49,6 +50,9 @@ export default function ProductDetail() {
       // Initialize notification form fields from product data
       if (productRes.data.price_drop_threshold !== null && productRes.data.price_drop_threshold !== undefined) {
         setPriceDropThreshold(productRes.data.price_drop_threshold.toString());
+      }
+      if (productRes.data.target_price !== null && productRes.data.target_price !== undefined) {
+        setTargetPrice(productRes.data.target_price.toString());
       }
       setNotifyBackInStock(productRes.data.notify_back_in_stock || false);
     } catch {
@@ -121,13 +125,16 @@ export default function ProductDetail() {
     setIsSavingNotifications(true);
     try {
       const threshold = priceDropThreshold ? parseFloat(priceDropThreshold) : null;
+      const target = targetPrice ? parseFloat(targetPrice) : null;
       await productsApi.update(productId, {
         price_drop_threshold: threshold,
+        target_price: target,
         notify_back_in_stock: notifyBackInStock,
       });
       setProduct({
         ...product,
         price_drop_threshold: threshold,
+        target_price: target,
         notify_back_in_stock: notifyBackInStock,
       });
     } catch {
@@ -678,6 +685,23 @@ export default function ProductDetail() {
                 </span>
               </div>
 
+              <div className="notification-form-group">
+                <label>Target Price</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={targetPrice}
+                  onChange={(e) => setTargetPrice(e.target.value)}
+                  placeholder="Enter target price (e.g., 49.99)"
+                />
+                <span className="hint">
+                  Notify when price drops to or below this amount ({product.currency || 'USD'})
+                </span>
+              </div>
+            </div>
+
+            <div className="notification-form-row">
               <div className="notification-form-group">
                 <label>Back in Stock Alert</label>
                 <label className="notification-checkbox-group">

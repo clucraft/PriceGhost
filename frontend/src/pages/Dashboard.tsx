@@ -28,6 +28,9 @@ export default function Dashboard() {
     const saved = localStorage.getItem('dashboard_sort_order');
     return (saved as SortOrder) || 'desc';
   });
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -80,6 +83,50 @@ export default function Dashboard() {
     }
   };
 
+  const handleSelectProduct = (id: number, selected: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === filteredAndSortedProducts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAndSortedProducts.map(p => p.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} product${selectedIds.size > 1 ? 's' : ''}?`)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => productsApi.delete(id)));
+      setProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
+      setSelectedIds(new Set());
+      setBulkMode(false);
+    } catch {
+      alert('Failed to delete some products');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const exitBulkMode = () => {
+    setBulkMode(false);
+    setSelectedIds(new Set());
+  };
+
   const getWebsite = (url: string) => {
     try {
       return new URL(url).hostname.replace('www.', '');
@@ -87,6 +134,38 @@ export default function Dashboard() {
       return url;
     }
   };
+
+  // Dashboard summary calculations
+  const dashboardSummary = useMemo(() => {
+    if (products.length === 0) return null;
+
+    const totalProducts = products.length;
+
+    // Find biggest drops this week (negative price_change_7d)
+    const biggestDrops = products
+      .filter(p => p.price_change_7d && p.price_change_7d < 0)
+      .sort((a, b) => (a.price_change_7d || 0) - (b.price_change_7d || 0))
+      .slice(0, 3);
+
+    // Find products at or below target price
+    const atTargetPrice = products.filter(p =>
+      p.target_price && p.current_price &&
+      parseFloat(String(p.current_price)) <= parseFloat(String(p.target_price))
+    );
+
+    // Find products at historical low
+    const atHistoricalLow = products.filter(p =>
+      p.current_price && p.min_price &&
+      parseFloat(String(p.current_price)) <= parseFloat(String(p.min_price))
+    );
+
+    return {
+      totalProducts,
+      biggestDrops,
+      atTargetPrice,
+      atHistoricalLow,
+    };
+  }, [products]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
@@ -321,6 +400,115 @@ export default function Dashboard() {
           justify-content: center;
           padding: 4rem;
         }
+
+        .dashboard-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .summary-card {
+          background: var(--surface);
+          border-radius: 0.75rem;
+          box-shadow: var(--shadow);
+          padding: 1rem;
+        }
+
+        .summary-card-title {
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          color: var(--text-muted);
+          margin-bottom: 0.5rem;
+        }
+
+        .summary-card-value {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: var(--text);
+        }
+
+        .summary-card-value.highlight {
+          color: var(--primary);
+        }
+
+        .summary-card-value.success {
+          color: #10b981;
+        }
+
+        .summary-card-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .summary-card-list li {
+          font-size: 0.8125rem;
+          color: var(--text);
+          padding: 0.25rem 0;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .summary-card-list li span.drop {
+          color: #10b981;
+          font-weight: 600;
+        }
+
+        .bulk-action-bar {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.75rem 1rem;
+          background: var(--primary);
+          color: white;
+          border-radius: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .bulk-action-bar .selected-count {
+          font-weight: 500;
+        }
+
+        .bulk-action-bar .bulk-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-left: auto;
+        }
+
+        .bulk-action-bar .btn {
+          background: rgba(255,255,255,0.2);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .bulk-action-bar .btn:hover {
+          background: rgba(255,255,255,0.3);
+        }
+
+        .bulk-action-bar .btn.btn-danger {
+          background: #dc2626;
+          border-color: #dc2626;
+        }
+
+        .bulk-action-bar .btn.btn-danger:hover {
+          background: #b91c1c;
+        }
+
+        .bulk-mode-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          color: var(--text-muted);
+          cursor: pointer;
+        }
+
+        .bulk-mode-toggle input {
+          accent-color: var(--primary);
+        }
       `}</style>
 
       <div className="dashboard-header">
@@ -333,6 +521,43 @@ export default function Dashboard() {
       <ProductForm onSubmit={handleAddProduct} />
 
       {error && <div className="alert alert-error">{error}</div>}
+
+      {/* Dashboard Summary */}
+      {!isLoading && dashboardSummary && dashboardSummary.totalProducts > 0 && (
+        <div className="dashboard-summary">
+          <div className="summary-card">
+            <div className="summary-card-title">Total Products</div>
+            <div className="summary-card-value">{dashboardSummary.totalProducts}</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-card-title">At Lowest Price</div>
+            <div className={`summary-card-value ${dashboardSummary.atHistoricalLow.length > 0 ? 'success' : ''}`}>
+              {dashboardSummary.atHistoricalLow.length}
+            </div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-card-title">At Target Price</div>
+            <div className={`summary-card-value ${dashboardSummary.atTargetPrice.length > 0 ? 'highlight' : ''}`}>
+              {dashboardSummary.atTargetPrice.length}
+            </div>
+          </div>
+          {dashboardSummary.biggestDrops.length > 0 && (
+            <div className="summary-card">
+              <div className="summary-card-title">Biggest Drops (7d)</div>
+              <ul className="summary-card-list">
+                {dashboardSummary.biggestDrops.map(p => (
+                  <li key={p.id}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '0.5rem' }}>
+                      {p.name?.slice(0, 20) || 'Unknown'}
+                    </span>
+                    <span className="drop">{p.price_change_7d?.toFixed(1)}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {!isLoading && products.length > 0 && (
         <div className="dashboard-controls">
@@ -389,6 +614,39 @@ export default function Dashboard() {
               </svg>
             </button>
           </div>
+          <label className="bulk-mode-toggle">
+            <input
+              type="checkbox"
+              checked={bulkMode}
+              onChange={(e) => {
+                setBulkMode(e.target.checked);
+                if (!e.target.checked) setSelectedIds(new Set());
+              }}
+            />
+            Select multiple
+          </label>
+        </div>
+      )}
+
+      {/* Bulk Action Bar */}
+      {bulkMode && selectedIds.size > 0 && (
+        <div className="bulk-action-bar">
+          <span className="selected-count">{selectedIds.size} selected</span>
+          <button className="btn btn-sm" onClick={handleSelectAll}>
+            {selectedIds.size === filteredAndSortedProducts.length ? 'Deselect All' : 'Select All'}
+          </button>
+          <div className="bulk-actions">
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={handleBulkDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete Selected'}
+            </button>
+            <button className="btn btn-sm" onClick={exitBulkMode}>
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -426,6 +684,9 @@ export default function Dashboard() {
                 product={product}
                 onDelete={handleDeleteProduct}
                 onRefresh={handleRefreshProduct}
+                showCheckbox={bulkMode}
+                isSelected={selectedIds.has(product.id)}
+                onSelect={handleSelectProduct}
               />
             ))}
           </div>

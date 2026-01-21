@@ -7,9 +7,12 @@ interface ProductCardProps {
   product: Product;
   onDelete: (id: number) => void;
   onRefresh: (id: number) => Promise<void>;
+  isSelected?: boolean;
+  onSelect?: (id: number, selected: boolean) => void;
+  showCheckbox?: boolean;
 }
 
-export default function ProductCard({ product, onDelete, onRefresh }: ProductCardProps) {
+export default function ProductCard({ product, onDelete, onRefresh, isSelected, onSelect, showCheckbox }: ProductCardProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -54,8 +57,14 @@ export default function ProductCard({ product, onDelete, onRefresh }: ProductCar
 
   const isOutOfStock = product.stock_status === 'out_of_stock';
 
+  // Check if current price is at or near historical low
+  const isHistoricalLow = product.current_price && product.min_price &&
+    product.current_price <= product.min_price;
+  const isNearHistoricalLow = !isHistoricalLow && product.current_price && product.min_price &&
+    product.current_price <= product.min_price * 1.05; // Within 5% of low
+
   return (
-    <div className={`product-list-item ${isOutOfStock ? 'out-of-stock' : ''}`}>
+    <div className={`product-list-item ${isOutOfStock ? 'out-of-stock' : ''} ${isSelected ? 'selected' : ''}`}>
       <style>{`
         .product-list-item {
           background: var(--surface);
@@ -71,6 +80,19 @@ export default function ProductCard({ product, onDelete, onRefresh }: ProductCar
         .product-list-item:hover {
           box-shadow: var(--shadow-lg);
           transform: translateY(-1px);
+        }
+
+        .product-list-item.selected {
+          outline: 2px solid var(--primary);
+          outline-offset: -2px;
+        }
+
+        .product-checkbox {
+          flex-shrink: 0;
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          accent-color: var(--primary);
         }
 
         .product-thumbnail {
@@ -199,6 +221,26 @@ export default function ProductCard({ product, onDelete, onRefresh }: ProductCar
           color: #f87171;
         }
 
+        .product-stock-badge.historical-low {
+          background: #ecfdf5;
+          color: #059669;
+        }
+
+        [data-theme="dark"] .product-stock-badge.historical-low {
+          background: rgba(5, 150, 105, 0.2);
+          color: #34d399;
+        }
+
+        .product-stock-badge.near-low {
+          background: #fef3c7;
+          color: #d97706;
+        }
+
+        [data-theme="dark"] .product-stock-badge.near-low {
+          background: rgba(217, 119, 6, 0.2);
+          color: #fbbf24;
+        }
+
         .product-list-item.out-of-stock {
           opacity: 0.7;
         }
@@ -284,6 +326,15 @@ export default function ProductCard({ product, onDelete, onRefresh }: ProductCar
         }
       `}</style>
 
+      {showCheckbox && (
+        <input
+          type="checkbox"
+          className="product-checkbox"
+          checked={isSelected}
+          onChange={(e) => onSelect?.(product.id, e.target.checked)}
+        />
+      )}
+
       {product.image_url ? (
         <img
           src={product.image_url}
@@ -297,7 +348,7 @@ export default function ProductCard({ product, onDelete, onRefresh }: ProductCar
       <div className="product-info">
         <h3 className="product-name">{product.name || 'Unknown Product'}</h3>
         <p className="product-source">{truncateUrl(product.url)}</p>
-        {(product.price_drop_threshold || product.notify_back_in_stock) && (
+        {(product.price_drop_threshold || product.target_price || product.notify_back_in_stock) && (
           <div className="product-notifications">
             {product.price_drop_threshold && (
               <span className="product-notification-badge" title="Price drop alert">
@@ -306,6 +357,16 @@ export default function ProductCard({ product, onDelete, onRefresh }: ProductCar
                   <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                 </svg>
                 ${Number(product.price_drop_threshold).toFixed(2)} drop
+              </span>
+            )}
+            {product.target_price && (
+              <span className="product-notification-badge" title="Target price alert">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+                Target: ${Number(product.target_price).toFixed(2)}
               </span>
             )}
             {product.notify_back_in_stock && (
@@ -334,6 +395,16 @@ export default function ProductCard({ product, onDelete, onRefresh }: ProductCar
             {product.price_change_7d !== null && product.price_change_7d !== undefined && (
               <span className={`product-price-change ${priceChangeClass}`}>
                 {formatPriceChange(product.price_change_7d)} (7d)
+              </span>
+            )}
+            {isHistoricalLow && (
+              <span className="product-stock-badge historical-low">
+                Lowest Price
+              </span>
+            )}
+            {isNearHistoricalLow && (
+              <span className="product-stock-badge near-low">
+                Near Low
               </span>
             )}
           </>

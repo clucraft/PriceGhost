@@ -91,6 +91,34 @@ async function checkPrices(): Promise<void> {
               }
             }
 
+            // Check for target price notification
+            if (product.target_price) {
+              const newPrice = scrapedData.price.price;
+              const targetPrice = parseFloat(String(product.target_price));
+              const oldPrice = latestPrice ? parseFloat(String(latestPrice.price)) : null;
+
+              // Only notify if price just dropped to or below target (wasn't already below)
+              if (newPrice <= targetPrice && (!oldPrice || oldPrice > targetPrice)) {
+                try {
+                  const userSettings = await userQueries.getNotificationSettings(product.user_id);
+                  if (userSettings) {
+                    const payload: NotificationPayload = {
+                      productName: product.name || 'Unknown Product',
+                      productUrl: product.url,
+                      type: 'target_price',
+                      newPrice: newPrice,
+                      currency: scrapedData.price.currency,
+                      targetPrice: targetPrice,
+                    };
+                    await sendNotifications(userSettings, payload);
+                    console.log(`Target price notification sent for product ${product.id}: ${newPrice} <= ${targetPrice}`);
+                  }
+                } catch (notifyError) {
+                  console.error(`Failed to send target price notification for product ${product.id}:`, notifyError);
+                }
+              }
+            }
+
             await priceHistoryQueries.create(
               product.id,
               scrapedData.price.price,

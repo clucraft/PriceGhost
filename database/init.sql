@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS products (
   next_check_at TIMESTAMP,
   stock_status VARCHAR(20) DEFAULT 'unknown',
   price_drop_threshold DECIMAL(10,2),
+  target_price DECIMAL(10,2),
   notify_back_in_stock BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, url)
@@ -104,6 +105,17 @@ BEGIN
     WHERE table_name = 'products' AND column_name = 'next_check_at'
   ) THEN
     ALTER TABLE products ADD COLUMN next_check_at TIMESTAMP;
+  END IF;
+END $$;
+
+-- Migration: Add target_price column for price alerts
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'products' AND column_name = 'target_price'
+  ) THEN
+    ALTER TABLE products ADD COLUMN target_price DECIMAL(10,2);
   END IF;
 END $$;
 
