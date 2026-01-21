@@ -4,11 +4,30 @@ import ProductCard from '../components/ProductCard';
 import ProductForm from '../components/ProductForm';
 import { productsApi, pricesApi, Product } from '../api/client';
 
+type SortOption = 'date_added' | 'name' | 'price' | 'price_change' | 'website';
+type SortOrder = 'asc' | 'desc';
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'date_added', label: 'Date Added' },
+  { value: 'name', label: 'Product Name' },
+  { value: 'price', label: 'Price' },
+  { value: 'price_change', label: 'Price Change (7d)' },
+  { value: 'website', label: 'Website' },
+];
+
 export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>(() => {
+    const saved = localStorage.getItem('dashboard_sort_by');
+    return (saved as SortOption) || 'date_added';
+  });
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const saved = localStorage.getItem('dashboard_sort_order');
+    return (saved as SortOrder) || 'desc';
+  });
 
   const fetchProducts = async () => {
     try {
@@ -24,6 +43,14 @@ export default function Dashboard() {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_sort_by', sortBy);
+  }, [sortBy]);
+
+  useEffect(() => {
+    localStorage.setItem('dashboard_sort_order', sortOrder);
+  }, [sortOrder]);
 
   const handleAddProduct = async (url: string, refreshInterval: number) => {
     const response = await productsApi.create(url, refreshInterval);
@@ -53,15 +80,57 @@ export default function Dashboard() {
     }
   };
 
-  const filteredProducts = useMemo(() => {
-    if (!searchQuery.trim()) return products;
-    const query = searchQuery.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(query) ||
-        p.url.toLowerCase().includes(query)
-    );
-  }, [products, searchQuery]);
+  const getWebsite = (url: string) => {
+    try {
+      return new URL(url).hostname.replace('www.', '');
+    } catch {
+      return url;
+    }
+  };
+
+  const filteredAndSortedProducts = useMemo(() => {
+    let result = [...products];
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name?.toLowerCase().includes(query) ||
+          p.url.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'date_added':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'name':
+          comparison = (a.name || '').localeCompare(b.name || '');
+          break;
+        case 'price': {
+          const priceA = typeof a.current_price === 'string' ? parseFloat(a.current_price) : (a.current_price || 0);
+          const priceB = typeof b.current_price === 'string' ? parseFloat(b.current_price) : (b.current_price || 0);
+          comparison = priceA - priceB;
+          break;
+        }
+        case 'price_change':
+          comparison = (a.price_change_7d || 0) - (b.price_change_7d || 0);
+          break;
+        case 'website':
+          comparison = getWebsite(a.url).localeCompare(getWebsite(b.url));
+          break;
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return result;
+  }, [products, searchQuery, sortBy, sortOrder]);
 
   return (
     <Layout>
@@ -123,6 +192,67 @@ export default function Dashboard() {
 
         .search-input::placeholder {
           color: var(--text-muted);
+        }
+
+        .sort-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .sort-select {
+          padding: 0.75rem 2rem 0.75rem 0.875rem;
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          background: var(--surface);
+          color: var(--text);
+          font-size: 0.9375rem;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.75rem center;
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .sort-select:focus {
+          outline: none;
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .sort-order-btn {
+          padding: 0.75rem;
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          background: var(--surface);
+          color: var(--text);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .sort-order-btn:hover {
+          background: var(--background);
+          border-color: var(--primary);
+        }
+
+        .sort-order-btn:focus {
+          outline: none;
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .sort-order-btn svg {
+          width: 16px;
+          height: 16px;
+          transition: transform 0.2s;
+        }
+
+        .sort-order-btn.desc svg {
+          transform: rotate(180deg);
         }
 
         .products-count {
@@ -230,6 +360,35 @@ export default function Dashboard() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <div className="sort-controls">
+            <select
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className={`sort-order-btn ${sortOrder}`}
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 5v14M5 12l7-7 7 7" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -245,7 +404,7 @@ export default function Dashboard() {
             Add your first product URL above to start tracking prices!
           </p>
         </div>
-      ) : filteredProducts.length === 0 ? (
+      ) : filteredAndSortedProducts.length === 0 ? (
         <div className="no-results">
           <div className="no-results-icon">🔍</div>
           <h3 className="no-results-title">No matching products</h3>
@@ -256,12 +415,12 @@ export default function Dashboard() {
       ) : (
         <>
           <p className="products-count">
-            {filteredProducts.length === products.length
+            {filteredAndSortedProducts.length === products.length
               ? `${products.length} product${products.length !== 1 ? 's' : ''}`
-              : `${filteredProducts.length} of ${products.length} products`}
+              : `${filteredAndSortedProducts.length} of ${products.length} products`}
           </p>
           <div className="products-list">
-            {filteredProducts.map((product) => (
+            {filteredAndSortedProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
