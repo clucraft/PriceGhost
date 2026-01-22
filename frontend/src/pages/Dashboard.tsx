@@ -29,8 +29,9 @@ export default function Dashboard() {
     return (saved as SortOrder) || 'desc';
   });
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [bulkMode, setBulkMode] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSavingBulk, setIsSavingBulk] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
 
   const fetchProducts = async () => {
     try {
@@ -110,11 +111,11 @@ export default function Dashboard() {
     }
 
     setIsDeleting(true);
+    setShowBulkActions(false);
     try {
       await Promise.all(Array.from(selectedIds).map(id => productsApi.delete(id)));
       setProducts(prev => prev.filter(p => !selectedIds.has(p.id)));
       setSelectedIds(new Set());
-      setBulkMode(false);
     } catch {
       alert('Failed to delete some products');
     } finally {
@@ -122,9 +123,95 @@ export default function Dashboard() {
     }
   };
 
-  const exitBulkMode = () => {
-    setBulkMode(false);
+  const handleBulkEnablePriceAlert = async () => {
+    const threshold = prompt('Enter price drop threshold (e.g., 5.00):');
+    if (!threshold) return;
+    const value = parseFloat(threshold);
+    if (isNaN(value) || value <= 0) {
+      alert('Please enter a valid positive number');
+      return;
+    }
+
+    setIsSavingBulk(true);
+    setShowBulkActions(false);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id =>
+          productsApi.update(id, { price_drop_threshold: value })
+        )
+      );
+      setProducts(prev =>
+        prev.map(p =>
+          selectedIds.has(p.id) ? { ...p, price_drop_threshold: value } : p
+        )
+      );
+      setSelectedIds(new Set());
+    } catch {
+      alert('Failed to update some products');
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
+  const handleBulkEnableStockAlert = async () => {
+    if (!confirm(`Enable stock alerts for ${selectedIds.size} product${selectedIds.size > 1 ? 's' : ''}?`)) {
+      return;
+    }
+
+    setIsSavingBulk(true);
+    setShowBulkActions(false);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id =>
+          productsApi.update(id, { notify_back_in_stock: true })
+        )
+      );
+      setProducts(prev =>
+        prev.map(p =>
+          selectedIds.has(p.id) ? { ...p, notify_back_in_stock: true } : p
+        )
+      );
+      setSelectedIds(new Set());
+    } catch {
+      alert('Failed to update some products');
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
+  const handleBulkSetTargetPrice = async () => {
+    const target = prompt('Enter target price (e.g., 49.99):');
+    if (!target) return;
+    const value = parseFloat(target);
+    if (isNaN(value) || value <= 0) {
+      alert('Please enter a valid positive number');
+      return;
+    }
+
+    setIsSavingBulk(true);
+    setShowBulkActions(false);
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id =>
+          productsApi.update(id, { target_price: value })
+        )
+      );
+      setProducts(prev =>
+        prev.map(p =>
+          selectedIds.has(p.id) ? { ...p, target_price: value } : p
+        )
+      );
+      setSelectedIds(new Set());
+    } catch {
+      alert('Failed to update some products');
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
+  const clearSelection = () => {
     setSelectedIds(new Set());
+    setShowBulkActions(false);
   };
 
   const getWebsite = (url: string) => {
@@ -458,56 +545,90 @@ export default function Dashboard() {
         }
 
         .bulk-action-bar {
+          position: fixed;
+          bottom: 1.5rem;
+          left: 50%;
+          transform: translateX(-50%);
           display: flex;
           align-items: center;
           gap: 1rem;
-          padding: 0.75rem 1rem;
-          background: var(--primary);
-          color: white;
-          border-radius: 0.5rem;
-          margin-bottom: 1rem;
+          padding: 0.75rem 1.25rem;
+          background: var(--surface);
+          color: var(--text);
+          border-radius: 0.75rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          border: 1px solid var(--border);
+          z-index: 100;
         }
 
         .bulk-action-bar .selected-count {
-          font-weight: 500;
+          font-weight: 600;
+          color: var(--primary);
         }
 
         .bulk-action-bar .bulk-actions {
           display: flex;
           gap: 0.5rem;
-          margin-left: auto;
+          position: relative;
         }
 
         .bulk-action-bar .btn {
-          background: rgba(255,255,255,0.2);
-          color: white;
-          border: 1px solid rgba(255,255,255,0.3);
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
         }
 
-        .bulk-action-bar .btn:hover {
-          background: rgba(255,255,255,0.3);
+        .bulk-actions-dropdown {
+          position: absolute;
+          bottom: calc(100% + 0.5rem);
+          right: 0;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          min-width: 200px;
+          overflow: hidden;
         }
 
-        .bulk-action-bar .btn.btn-danger {
-          background: #dc2626;
-          border-color: #dc2626;
-        }
-
-        .bulk-action-bar .btn.btn-danger:hover {
-          background: #b91c1c;
-        }
-
-        .bulk-mode-toggle {
+        .bulk-actions-dropdown button {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0.75rem;
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border: none;
+          background: none;
+          color: var(--text);
           font-size: 0.875rem;
-          color: var(--text-muted);
           cursor: pointer;
+          text-align: left;
         }
 
-        .bulk-mode-toggle input {
-          accent-color: var(--primary);
+        .bulk-actions-dropdown button:hover {
+          background: var(--background);
+        }
+
+        .bulk-actions-dropdown button.danger {
+          color: #dc2626;
+        }
+
+        .bulk-actions-dropdown button.danger:hover {
+          background: #fef2f2;
+        }
+
+        [data-theme="dark"] .bulk-actions-dropdown button.danger:hover {
+          background: rgba(220, 38, 38, 0.1);
+        }
+
+        .bulk-actions-dropdown svg {
+          width: 16px;
+          height: 16px;
+          flex-shrink: 0;
+        }
+
+        .bulk-actions-dropdown hr {
+          margin: 0;
+          border: none;
+          border-top: 1px solid var(--border);
         }
       `}</style>
 
@@ -614,37 +735,61 @@ export default function Dashboard() {
               </svg>
             </button>
           </div>
-          <label className="bulk-mode-toggle">
-            <input
-              type="checkbox"
-              checked={bulkMode}
-              onChange={(e) => {
-                setBulkMode(e.target.checked);
-                if (!e.target.checked) setSelectedIds(new Set());
-              }}
-            />
-            Select multiple
-          </label>
         </div>
       )}
 
       {/* Bulk Action Bar */}
-      {bulkMode && selectedIds.size > 0 && (
+      {selectedIds.size > 0 && (
         <div className="bulk-action-bar">
           <span className="selected-count">{selectedIds.size} selected</span>
-          <button className="btn btn-sm" onClick={handleSelectAll}>
+          <button className="btn btn-secondary btn-sm" onClick={handleSelectAll}>
             {selectedIds.size === filteredAndSortedProducts.length ? 'Deselect All' : 'Select All'}
           </button>
           <div className="bulk-actions">
             <button
-              className="btn btn-danger btn-sm"
-              onClick={handleBulkDelete}
-              disabled={isDeleting}
+              className="btn btn-primary btn-sm"
+              onClick={() => setShowBulkActions(!showBulkActions)}
+              disabled={isDeleting || isSavingBulk}
             >
-              {isDeleting ? 'Deleting...' : 'Delete Selected'}
+              {isDeleting || isSavingBulk ? 'Working...' : 'Actions ▾'}
             </button>
-            <button className="btn btn-sm" onClick={exitBulkMode}>
-              Cancel
+            {showBulkActions && (
+              <div className="bulk-actions-dropdown">
+                <button onClick={handleBulkEnablePriceAlert}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                  </svg>
+                  Set Price Drop Alert
+                </button>
+                <button onClick={handleBulkSetTargetPrice}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="6" />
+                    <circle cx="12" cy="12" r="2" />
+                  </svg>
+                  Set Target Price
+                </button>
+                <button onClick={handleBulkEnableStockAlert}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                  Enable Stock Alerts
+                </button>
+                <hr />
+                <button className="danger" onClick={handleBulkDelete}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  </svg>
+                  Delete Selected
+                </button>
+              </div>
+            )}
+            <button className="btn btn-secondary btn-sm" onClick={clearSelection}>
+              Clear
             </button>
           </div>
         </div>
@@ -684,7 +829,7 @@ export default function Dashboard() {
                 product={product}
                 onDelete={handleDeleteProduct}
                 onRefresh={handleRefreshProduct}
-                showCheckbox={bulkMode}
+                showCheckbox={true}
                 isSelected={selectedIds.has(product.id)}
                 onSelect={handleSelectProduct}
               />
