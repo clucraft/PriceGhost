@@ -30,6 +30,9 @@ export default function ProductDetail() {
   const [notifyBackInStock, setNotifyBackInStock] = useState(false);
 
   const REFRESH_INTERVALS = [
+    { value: 300, label: '5 minutes' },
+    { value: 600, label: '10 minutes' },
+    { value: 900, label: '15 minutes' },
     { value: 1800, label: '30 minutes' },
     { value: 3600, label: '1 hour' },
     { value: 7200, label: '2 hours' },
@@ -472,6 +475,11 @@ export default function ProductDetail() {
                     </option>
                   ))}
                 </select>
+                {product.refresh_interval === 300 && (
+                  <small style={{ color: 'var(--warning)', marginTop: '0.25rem', display: 'block', fontSize: '0.75rem' }}>
+                    Warning: May cause rate limiting
+                  </small>
+                )}
               </div>
               <div className="product-detail-meta-item">
                 <span className="product-detail-meta-label">Tracking Since</span>

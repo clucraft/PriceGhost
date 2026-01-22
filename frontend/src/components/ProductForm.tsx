@@ -5,6 +5,8 @@ interface ProductFormProps {
 }
 
 const REFRESH_INTERVALS = [
+  { value: 300, label: '5 minutes' },
+  { value: 600, label: '10 minutes' },
   { value: 900, label: '15 minutes' },
   { value: 1800, label: '30 minutes' },
   { value: 3600, label: '1 hour' },
@@ -113,6 +115,11 @@ export default function ProductForm({ onSubmit }: ProductFormProps) {
                 </option>
               ))}
             </select>
+            {refreshInterval === 300 && (
+              <small style={{ color: 'var(--warning)', marginTop: '0.25rem', display: 'block' }}>
+                Warning: Very frequent checks may result in rate limiting
+              </small>
+            )}
           </div>
 
           <button
