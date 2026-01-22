@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import PriceChart from '../components/PriceChart';
+import { useToast } from '../context/ToastContext';
 import {
   productsApi,
   pricesApi,
@@ -14,6 +15,7 @@ import {
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [product, setProduct] = useState<ProductWithStats | null>(null);
   const [prices, setPrices] = useState<PriceHistory[]>([]);
@@ -83,8 +85,9 @@ export default function ProductDetail() {
     try {
       await pricesApi.refresh(productId);
       await fetchData(30);
+      showToast('Price refreshed');
     } catch {
-      alert('Failed to refresh price');
+      showToast('Failed to refresh price', 'error');
     } finally {
       setIsRefreshing(false);
     }
@@ -99,7 +102,7 @@ export default function ProductDetail() {
       await productsApi.delete(productId);
       navigate('/');
     } catch {
-      alert('Failed to delete product');
+      showToast('Failed to delete product', 'error');
     }
   };
 
@@ -113,8 +116,9 @@ export default function ProductDetail() {
     try {
       await productsApi.update(productId, { refresh_interval: newInterval });
       setProduct({ ...product, refresh_interval: newInterval });
+      showToast('Check interval updated');
     } catch {
-      alert('Failed to update refresh interval');
+      showToast('Failed to update refresh interval', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -137,8 +141,9 @@ export default function ProductDetail() {
         target_price: target,
         notify_back_in_stock: notifyBackInStock,
       });
+      showToast('Notification settings saved');
     } catch {
-      alert('Failed to save notification settings');
+      showToast('Failed to save notification settings', 'error');
     } finally {
       setIsSavingNotifications(false);
     }
