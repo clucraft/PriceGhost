@@ -2,6 +2,8 @@
 
 A self-hosted price tracking application that monitors product prices from any website. Get notified when prices drop, hit your target price, or items come back in stock.
 
+<img width="1609" height="1094" alt="image" src="https://github.com/user-attachments/assets/311f410c-170c-4f0c-81e3-3ba7e0141fa7" />
+
 ## Features
 
 ### Price Tracking
