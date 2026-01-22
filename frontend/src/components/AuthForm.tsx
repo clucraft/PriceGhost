@@ -1,5 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { authApi } from '../api/client';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
@@ -12,6 +13,7 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('theme');
     return (saved as 'light' | 'dark') || 'light';
@@ -21,6 +23,13 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    // Check if registration is enabled
+    authApi.getRegistrationStatus()
+      .then(res => setRegistrationEnabled(res.data.registration_enabled))
+      .catch(() => setRegistrationEnabled(true)); // Default to true on error
+  }, []);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
@@ -206,17 +215,16 @@ export default function AuthForm({ mode, onSubmit }: AuthFormProps) {
           </button>
         </form>
 
-        <div className="auth-form-footer">
-          {mode === 'login' ? (
-            <>
-              Don't have an account? <Link to="/register">Sign up</Link>
-            </>
-          ) : (
-            <>
-              Already have an account? <Link to="/login">Sign in</Link>
-            </>
-          )}
-        </div>
+        {mode === 'login' && registrationEnabled && (
+          <div className="auth-form-footer">
+            Don't have an account? <Link to="/register">Sign up</Link>
+          </div>
+        )}
+        {mode === 'register' && (
+          <div className="auth-form-footer">
+            Already have an account? <Link to="/login">Sign in</Link>
+          </div>
+        )}
       </div>
     </div>
   );
