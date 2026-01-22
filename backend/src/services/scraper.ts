@@ -1,11 +1,15 @@
 import axios, { AxiosError } from 'axios';
 import { load, type CheerioAPI } from 'cheerio';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import {
   parsePrice,
   ParsedPrice,
   findMostLikelyPrice,
 } from '../utils/priceParser';
+
+// Add stealth plugin to avoid bot detection (Cloudflare, etc.)
+puppeteer.use(StealthPlugin());
 
 export type StockStatus = 'in_stock' | 'out_of_stock' | 'unknown';
 
@@ -19,6 +23,7 @@ async function scrapeWithBrowser(url: string): Promise<string> {
       '--disable-dev-shm-usage',
       '--disable-accelerated-2d-canvas',
       '--disable-gpu',
+      '--window-size=1920,1080',
     ],
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
   });
@@ -26,22 +31,33 @@ async function scrapeWithBrowser(url: string): Promise<string> {
   try {
     const page = await browser.newPage();
 
-    // Set a realistic user agent
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
-    );
-
     // Set viewport
     await page.setViewport({ width: 1920, height: 1080 });
 
     // Navigate to the page and wait for content to load
     await page.goto(url, {
       waitUntil: 'networkidle2',
-      timeout: 30000,
+      timeout: 45000,
     });
 
-    // Wait a bit for any dynamic content to render
-    await page.waitForSelector('body', { timeout: 5000 });
+    // Wait for Cloudflare challenge to complete if present
+    // Check if we're on a challenge page and wait for it to resolve
+    const maxWaitTime = 15000;
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < maxWaitTime) {
+      const title = await page.title();
+      // Cloudflare challenge pages have titles like "Just a moment..."
+      if (!title.toLowerCase().includes('just a moment') &&
+          !title.toLowerCase().includes('checking your browser')) {
+        break;
+      }
+      console.log(`[Browser] Waiting for Cloudflare challenge to complete... (${title})`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // Additional wait for dynamic content
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Get the full HTML content
     const html = await page.content();
