@@ -554,6 +554,118 @@ const siteScrapers: SiteScraper[] = [
       return { name, price, imageUrl };
     },
   },
+
+  // B&H Photo Video
+  {
+    match: (url) => /bhphotovideo\.com/i.test(url),
+    scrape: ($) => {
+      let price: ParsedPrice | null = null;
+      let name: string | null = null;
+      let imageUrl: string | null = null;
+      let stockStatus: StockStatus = 'unknown';
+
+      // Try to get data from JSON-LD first
+      try {
+        const scripts = $('script[type="application/ld+json"]');
+        scripts.each((_, script) => {
+          const content = $(script).html();
+          if (!content) return;
+          try {
+            const data = JSON.parse(content);
+            if (data['@type'] === 'Product' || data.offers) {
+              if (data.name && !name) {
+                name = data.name;
+              }
+              if (data.image && !imageUrl) {
+                imageUrl = Array.isArray(data.image) ? data.image[0] : data.image;
+              }
+              if (data.offers && !price) {
+                const offer = Array.isArray(data.offers) ? data.offers[0] : data.offers;
+                if (offer.price) {
+                  price = {
+                    price: parseFloat(String(offer.price)),
+                    currency: offer.priceCurrency || 'USD',
+                  };
+                }
+                // Check availability from JSON-LD
+                if (offer.availability) {
+                  const avail = offer.availability.toLowerCase();
+                  if (avail.includes('instock')) {
+                    stockStatus = 'in_stock';
+                  } else if (avail.includes('outofstock')) {
+                    stockStatus = 'out_of_stock';
+                  }
+                }
+              }
+            }
+          } catch (_e) {
+            // Continue to next script
+          }
+        });
+      } catch (_e) {
+        // JSON-LD parsing failed
+      }
+
+      // Fallback to HTML selectors
+      if (!price) {
+        const priceSelectors = [
+          '[data-selenium="pricingPrice"]',
+          '[data-selenium="uppedDecimalPriceFirst"]',
+          '.price_1DPoToKrLP1U',
+          '[class*="price_"] span',
+          '.priceInfo span[class*="price"]',
+        ];
+
+        for (const selector of priceSelectors) {
+          const el = $(selector).first();
+          if (el.length) {
+            const text = el.text().trim();
+            price = parsePrice(text);
+            if (price) break;
+          }
+        }
+      }
+
+      // Try combining dollars and cents if still no price
+      if (!price) {
+        const priceContainer = $('[data-selenium="pricingPrice"]').first();
+        if (priceContainer.length) {
+          const fullText = priceContainer.text().replace(/\s+/g, '');
+          price = parsePrice(fullText);
+        }
+      }
+
+      if (!name) {
+        name = $('h1[data-selenium="productTitle"]').text().trim() ||
+               $('h1[class*="title_"]').text().trim() ||
+               $('[data-selenium="productTitle"]').text().trim() ||
+               null;
+      }
+
+      if (!imageUrl) {
+        imageUrl = $('[data-selenium="mainImage"] img').attr('src') ||
+                   $('img[data-selenium="mainImage"]').attr('src') ||
+                   $('meta[property="og:image"]').attr('content') ||
+                   null;
+      }
+
+      // Stock status from HTML
+      if (stockStatus === 'unknown') {
+        const addToCartBtn = $('[data-selenium="addToCartButton"]').length > 0;
+        const notifyBtn = $('[data-selenium="notifyAvailabilityButton"]').length > 0;
+        const outOfStockText = $('body').text().toLowerCase();
+
+        if (addToCartBtn) {
+          stockStatus = 'in_stock';
+        } else if (notifyBtn || outOfStockText.includes('notify when available') ||
+                   outOfStockText.includes('temporarily unavailable')) {
+          stockStatus = 'out_of_stock';
+        }
+      }
+
+      return { name, price, imageUrl, stockStatus };
+    },
+  },
 ];
 
 // Generic selectors as fallback
