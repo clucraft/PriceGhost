@@ -1,5 +1,17 @@
 import axios from 'axios';
 
+// Helper to get currency symbol for display
+function getCurrencySymbol(currency?: string): string {
+  switch (currency) {
+    case 'EUR': return '€';
+    case 'GBP': return '£';
+    case 'CHF': return 'CHF ';
+    case 'JPY': return '¥';
+    case 'INR': return '₹';
+    default: return '$';
+  }
+}
+
 export interface NotificationPayload {
   productName: string;
   productUrl: string;
@@ -12,7 +24,7 @@ export interface NotificationPayload {
 }
 
 function formatMessage(payload: NotificationPayload): string {
-  const currencySymbol = payload.currency === 'EUR' ? '€' : payload.currency === 'GBP' ? '£' : '$';
+  const currencySymbol = getCurrencySymbol(payload.currency);
 
   if (payload.type === 'price_drop') {
     const oldPriceStr = payload.oldPrice ? `${currencySymbol}${payload.oldPrice.toFixed(2)}` : 'N/A';
@@ -78,7 +90,7 @@ export async function sendDiscordNotification(
   payload: NotificationPayload
 ): Promise<boolean> {
   try {
-    const currencySymbol = payload.currency === 'EUR' ? '€' : payload.currency === 'GBP' ? '£' : '$';
+    const currencySymbol = getCurrencySymbol(payload.currency);
 
     let embed;
     if (payload.type === 'price_drop') {
@@ -145,7 +157,7 @@ export async function sendPushoverNotification(
   payload: NotificationPayload
 ): Promise<boolean> {
   try {
-    const currencySymbol = payload.currency === 'EUR' ? '€' : payload.currency === 'GBP' ? '£' : '$';
+    const currencySymbol = getCurrencySymbol(payload.currency);
 
     let title: string;
     let message: string;

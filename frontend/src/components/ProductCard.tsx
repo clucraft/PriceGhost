@@ -81,7 +81,7 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     if (isNaN(numPrice)) return 'N/A';
     const currencySymbol =
-      currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+      currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'CHF' ? 'CHF ' : '$';
     return `${currencySymbol}${numPrice.toFixed(2)}`;
   };
 

@@ -59,7 +59,7 @@ export default function PriceChart({
   };
 
   const currencySymbol =
-    currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : '$';
+    currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'CHF' ? 'CHF ' : '$';
 
   const chartData = prices.map((p) => ({
     date: new Date(p.recorded_at).getTime(),
