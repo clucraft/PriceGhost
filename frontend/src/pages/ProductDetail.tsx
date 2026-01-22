@@ -521,7 +521,7 @@ export default function ProductDetail() {
         onRangeChange={handleRangeChange}
       />
 
-      {notificationSettings && (notificationSettings.telegram_configured || notificationSettings.discord_configured) && (
+      {notificationSettings && (notificationSettings.telegram_configured || notificationSettings.discord_configured || notificationSettings.pushover_configured) && (
         <>
           <style>{`
             .notification-settings-card {
@@ -675,11 +675,14 @@ export default function ProductDetail() {
                 {notificationSettings.discord_configured && (
                   <span className="notification-channel-badge">Discord</span>
                 )}
+                {notificationSettings.pushover_configured && (
+                  <span className="notification-channel-badge">Pushover</span>
+                )}
               </div>
             </div>
             <p className="notification-settings-description">
-              Get notified when this product's price drops or comes back in stock.
-              Notifications will be sent to your configured channels.
+              Configure alerts for this product. When triggered, notifications will be sent to <strong>all</strong> your
+              configured channels shown above.
             </p>
 
             <div className="notification-form-row">
