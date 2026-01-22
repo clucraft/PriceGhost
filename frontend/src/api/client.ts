@@ -59,6 +59,7 @@ export interface Product {
   image_url: string | null;
   refresh_interval: number;
   last_checked: string | null;
+  next_check_at: string | null;
   stock_status: StockStatus;
   price_drop_threshold: number | null;
   target_price: number | null;

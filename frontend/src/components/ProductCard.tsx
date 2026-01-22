@@ -18,23 +18,25 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
   const [timeRemaining, setTimeRemaining] = useState('');
   const [isComplete, setIsComplete] = useState(false);
 
-  // Calculate progress and time remaining
+  // Calculate progress and time remaining using next_check_at from server
   useEffect(() => {
     const calculateProgress = () => {
-      if (!product.last_checked) {
+      if (!product.next_check_at || !product.last_checked) {
         setProgress(100);
         setTimeRemaining('Soon');
         return;
       }
 
       const lastChecked = new Date(product.last_checked).getTime();
-      const intervalMs = product.refresh_interval * 1000;
-      const nextCheck = lastChecked + intervalMs;
+      const nextCheck = new Date(product.next_check_at).getTime();
       const now = Date.now();
+      const totalDuration = nextCheck - lastChecked;
       const elapsed = now - lastChecked;
       const remaining = nextCheck - now;
 
-      const progressPercent = Math.min((elapsed / intervalMs) * 100, 100);
+      const progressPercent = totalDuration > 0
+        ? Math.min((elapsed / totalDuration) * 100, 100)
+        : 100;
       setProgress(progressPercent);
 
       // Trigger complete animation when reaching 100%
@@ -64,7 +66,7 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
     calculateProgress();
     const interval = setInterval(calculateProgress, 1000);
     return () => clearInterval(interval);
-  }, [product.last_checked, product.refresh_interval, isComplete]);
+  }, [product.last_checked, product.next_check_at, isComplete]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
