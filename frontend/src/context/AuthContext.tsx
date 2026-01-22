@@ -10,6 +10,7 @@ import { authApi } from '../api/client';
 interface User {
   id: number;
   email: string;
+  name: string | null;
 }
 
 interface AuthContextType {

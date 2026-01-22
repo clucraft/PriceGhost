@@ -262,9 +262,9 @@ export default function Layout({ children }: LayoutProps) {
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 >
                   <span className="user-dropdown-avatar">
-                    {user.email.charAt(0).toUpperCase()}
+                    {(user.name || user.email).charAt(0).toUpperCase()}
                   </span>
-                  <span className="user-dropdown-email">{user.email}</span>
+                  <span className="user-dropdown-email">{user.name || user.email}</span>
                   <svg
                     className="user-dropdown-arrow"
                     width="12"
