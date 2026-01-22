@@ -36,7 +36,21 @@ HTML Content:
 function prepareHtmlForAI(html: string): string {
   const $ = load(html);
 
-  // Remove script, style, and other non-content elements
+  // Extract JSON-LD data BEFORE removing scripts (it often contains product info)
+  const jsonLdScripts: string[] = [];
+  $('script[type="application/ld+json"]').each((_, el) => {
+    const scriptContent = $(el).html();
+    if (scriptContent) {
+      // Include any JSON-LD that might be product-related
+      if (scriptContent.includes('price') ||
+          scriptContent.includes('Product') ||
+          scriptContent.includes('Offer')) {
+        jsonLdScripts.push(scriptContent);
+      }
+    }
+  });
+
+  // Now remove script, style, and other non-content elements
   $('script, style, noscript, iframe, svg, path, meta, link, comment').remove();
 
   // Get the body content
@@ -60,19 +74,11 @@ function prepareHtmlForAI(html: string): string {
     }
   }
 
-  // Also extract JSON-LD data which often contains product info
-  const jsonLdScripts: string[] = [];
-  $('script[type="application/ld+json"]').each((_, el) => {
-    const scriptContent = $(el).html();
-    if (scriptContent && scriptContent.includes('price')) {
-      jsonLdScripts.push(scriptContent);
-    }
-  });
-
-  // Combine content with JSON-LD data
+  // Combine JSON-LD data with HTML content
   let finalContent = content;
   if (jsonLdScripts.length > 0) {
-    finalContent = `JSON-LD Data:\n${jsonLdScripts.join('\n')}\n\nHTML Content:\n${content}`;
+    finalContent = `JSON-LD Structured Data:\n${jsonLdScripts.join('\n')}\n\nHTML Content:\n${content}`;
+    console.log(`[AI] Found ${jsonLdScripts.length} JSON-LD scripts with product data`);
   }
 
   // Truncate to ~15000 characters to stay within token limits
@@ -80,6 +86,7 @@ function prepareHtmlForAI(html: string): string {
     finalContent = finalContent.substring(0, 15000) + '\n... [truncated]';
   }
 
+  console.log(`[AI] Prepared HTML content: ${finalContent.length} characters`);
   return finalContent;
 }
 
@@ -138,6 +145,8 @@ async function extractWithOpenAI(
 }
 
 function parseAIResponse(responseText: string): AIExtractionResult {
+  console.log(`[AI] Raw response: ${responseText.substring(0, 500)}...`);
+
   // Try to extract JSON from the response
   let jsonStr = responseText.trim();
 
@@ -155,6 +164,7 @@ function parseAIResponse(responseText: string): AIExtractionResult {
 
   try {
     const data = JSON.parse(jsonStr);
+    console.log(`[AI] Parsed data:`, JSON.stringify(data, null, 2));
 
     let price: ParsedPrice | null = null;
     if (data.price !== null && data.price !== undefined) {

@@ -199,8 +199,12 @@ router.post('/ai/test', async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    console.log(`[AI Test] Testing URL: ${url} with provider: ${settings.ai_provider}`);
+
     const { extractWithAI } = await import('../services/ai-extractor');
     const result = await extractWithAI(url, settings);
+
+    console.log(`[AI Test] Result:`, JSON.stringify(result, null, 2));
 
     res.json({
       success: !!result.price,
@@ -208,7 +212,8 @@ router.post('/ai/test', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Error testing AI extraction:', error);
-    res.status(500).json({ error: 'Failed to test AI extraction' });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: `Failed to test AI extraction: ${errorMessage}` });
   }
 });
 
