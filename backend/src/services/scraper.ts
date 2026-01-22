@@ -778,11 +778,17 @@ interface JsonLdProduct {
   offers?: JsonLdOffer | JsonLdOffer[];
 }
 
+interface JsonLdPriceSpecification {
+  price?: string | number;
+  priceCurrency?: string;
+}
+
 interface JsonLdOffer {
   '@type'?: string;
   price?: string | number;
   priceCurrency?: string;
   lowPrice?: string | number;
+  priceSpecification?: JsonLdPriceSpecification;
 }
 
 function extractJsonLd(
@@ -809,12 +815,17 @@ function extractJsonLd(
             ? product.offers[0]
             : product.offers;
 
-          // Get price, preferring lowPrice for ranges
-          const priceValue = offer.lowPrice || offer.price;
+          // Get price, checking multiple locations:
+          // 1. lowPrice (for price ranges)
+          // 2. price (direct)
+          // 3. priceSpecification.price (nested format used by some sites)
+          const priceValue = offer.lowPrice || offer.price || offer.priceSpecification?.price;
+          const currency = offer.priceCurrency || offer.priceSpecification?.priceCurrency || 'USD';
+
           if (priceValue) {
             result.price = {
               price: parseFloat(String(priceValue)),
-              currency: offer.priceCurrency || 'USD',
+              currency,
             };
           }
         }
