@@ -22,7 +22,7 @@
   </defs>
 
   <!-- Ghost Icon (scaled down) -->
-  <g transform="translate(10, 10) scale(0.195)">
+  <g transform="translate(100, 10) scale(0.195)">
     <!-- Background circle -->
     <circle cx="256" cy="256" r="240" fill="url(#ghostGrad)"/>
     <!-- Ghost body -->
@@ -39,6 +39,6 @@
   </g>
 
   <!-- "PriceGhost" text - Price solid, Ghost with fade effect -->
-  <text x="125" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="#1f2937">Price</text>
-  <text x="249" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="url(#textFade)" filter="url(#glow)">Ghost</text>
+  <text x="215" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="#1f2937">Price</text>
+  <text x="339" y="78" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="700" fill="url(#textFade)" filter="url(#glow)">Ghost</text>
 </svg>
