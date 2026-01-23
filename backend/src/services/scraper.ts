@@ -464,57 +464,107 @@ const siteScrapers: SiteScraper[] = [
   {
     match: (url) => /newegg\.com/i.test(url),
     scrape: ($) => {
-      // Try multiple price selectors
-      const priceSelectors = [
-        '.price-current',
-        '.price-current strong',
-        '[itemprop="price"]',
-        '.product-price .price-current',
-        '.product-buy-box .price-current',
-        '.price-main-product .price-current',
-      ];
+      // Helper to check if element is inside a savings/combo container
+      const isInSavingsContainer = (el: ReturnType<typeof $>) => {
+        const parents = el.parents().toArray();
+        for (const parent of parents) {
+          const className = $(parent).attr('class') || '';
+          const id = $(parent).attr('id') || '';
+          // Skip elements inside combo deals, savings sections, or "you save" areas
+          if (/combo|save|saving|deal|bundle|discount/i.test(className + id)) {
+            return true;
+          }
+          // Check for specific Newegg combo/savings containers
+          if (className.includes('item-combo') || className.includes('product-combo')) {
+            return true;
+          }
+        }
+        // Also check the element's surrounding text for "save" context
+        const parentText = el.parent().text().toLowerCase();
+        if (parentText.includes('you save') || parentText.includes('save $')) {
+          return true;
+        }
+        return false;
+      };
 
       let price: ParsedPrice | null = null;
-      for (const selector of priceSelectors) {
-        const el = $(selector).first();
-        if (el.length) {
-          // For price-current, combine the dollar and cents parts
-          if (selector.includes('price-current')) {
-            const strong = el.find('strong').text().trim() || el.text().trim();
-            const sup = el.find('sup').text().trim();
-            if (strong) {
-              const priceText = `$${strong}${sup ? '.' + sup : ''}`;
-              price = parsePrice(priceText);
-              if (price) break;
+
+      // First, try JSON-LD data - most reliable source
+      try {
+        const scripts = $('script[type="application/ld+json"]');
+        scripts.each((_, script) => {
+          if (price) return; // Already found
+          const jsonLd = $(script).html();
+          if (jsonLd) {
+            const data = JSON.parse(jsonLd);
+            // Handle array of JSON-LD objects
+            const items = Array.isArray(data) ? data : [data];
+            for (const item of items) {
+              if (item['@type'] === 'Product' && item.offers) {
+                const offer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
+                if (offer?.price) {
+                  price = {
+                    price: parseFloat(String(offer.price)),
+                    currency: offer.priceCurrency || 'USD',
+                  };
+                  break;
+                }
+              }
             }
           }
-          // Try content attribute for itemprop
-          const content = el.attr('content');
-          if (content) {
-            price = parsePrice(content);
-            if (price) break;
-          }
-          // Try text content
-          price = parsePrice(el.text().trim());
+        });
+      } catch (_e) {
+        // Ignore JSON parse errors
+      }
+
+      // Fallback: Try HTML selectors, but be careful to avoid savings amounts
+      if (!price) {
+        // Target main product buy box price specifically
+        const mainPriceContainers = [
+          '.product-buy-box .price-current',
+          '.price-main-product .price-current',
+          '.product-price .price-current',
+          '#app .price-current', // Main app container
+        ];
+
+        for (const selector of mainPriceContainers) {
+          const elements = $(selector);
+          elements.each((_, el) => {
+            if (price) return; // Already found
+
+            const $el = $(el);
+            // Skip if inside a savings/combo container
+            if (isInSavingsContainer($el)) return;
+
+            // Combine dollar and cents parts
+            const strong = $el.find('strong').text().trim() || $el.text().trim();
+            const sup = $el.find('sup').text().trim();
+            if (strong) {
+              // Clean the strong text - remove any non-numeric chars except comma
+              const cleanStrong = strong.replace(/[^0-9,]/g, '');
+              if (cleanStrong) {
+                const priceText = `$${cleanStrong}${sup ? '.' + sup : ''}`;
+                const parsed = parsePrice(priceText);
+                // Validate this looks like a real product price (Ryzen 9 should be $500+)
+                if (parsed && parsed.price > 50) {
+                  price = parsed;
+                }
+              }
+            }
+          });
+
           if (price) break;
         }
       }
 
-      // Also try JSON-LD data
+      // Last resort: itemprop price
       if (!price) {
-        try {
-          const jsonLd = $('script[type="application/ld+json"]').first().html();
-          if (jsonLd) {
-            const data = JSON.parse(jsonLd);
-            if (data.offers?.price) {
-              price = {
-                price: parseFloat(String(data.offers.price)),
-                currency: data.offers.priceCurrency || 'USD',
-              };
-            }
+        const itemprop = $('[itemprop="price"]').first();
+        if (itemprop.length) {
+          const content = itemprop.attr('content');
+          if (content) {
+            price = parsePrice(content);
           }
-        } catch (_e) {
-          // Ignore JSON parse errors
         }
       }
 
