@@ -1,8 +1,17 @@
-# PriceGhost
+<p align="center">
+  <img src="frontend/public/icon.svg" alt="PriceGhost Logo" width="120" height="120">
+</p>
 
-A self-hosted price tracking application that monitors product prices from any website. Get notified when prices drop, hit your target price, or items come back in stock.
+<h1 align="center">PriceGhost</h1>
 
-<img width="1609" height="1094" alt="image" src="https://github.com/user-attachments/assets/311f410c-170c-4f0c-81e3-3ba7e0141fa7" />
+<p align="center">
+  <strong>A self-hosted price tracking application that monitors product prices from any website.</strong><br>
+  Get notified when prices drop, hit your target price, or items come back in stock.
+</p>
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/311f410c-170c-4f0c-81e3-3ba7e0141fa7" alt="PriceGhost Dashboard" width="800">
+</p>
 
 ---
 
@@ -57,6 +66,7 @@ The cost is minimal (fractions of a cent per extraction) and dramatically improv
 - **Telegram** - Get alerts via Telegram bot
 - **Discord** - Send alerts to any Discord channel via webhooks
 - **Pushover** - Native Pushover support for mobile push notifications
+- **ntfy.sh** - Simple, no-account push notifications to any device
 - **Per-channel toggles** - Enable/disable each notification channel independently
 - **Test notifications** - Send test alerts to verify your setup
 
@@ -88,7 +98,7 @@ The cost is minimal (fractions of a cent per extraction) and dramatically improv
 | **Backend** | Node.js, Express, TypeScript |
 | **Database** | PostgreSQL |
 | **Scraping** | Cheerio, Puppeteer (with stealth plugin) |
-| **AI Extraction** | Anthropic Claude, OpenAI GPT (optional but recommended) |
+| **AI Extraction** | Anthropic Claude, OpenAI GPT, Ollama (optional but recommended) |
 | **Charts** | Recharts |
 | **Auth** | JWT + bcrypt |
 | **Scheduling** | node-cron |
@@ -172,6 +182,15 @@ npm run dev
 4. Enter both in Settings > Notifications
 5. Use the toggle to enable/disable without losing your configuration
 
+#### ntfy.sh
+1. Choose a unique topic name (e.g., `priceghost-yourname`)
+2. Subscribe to your topic on your phone:
+   - **Android**: Install [ntfy app](https://play.google.com/store/apps/details?id=io.heckel.ntfy) and subscribe to your topic
+   - **iOS**: Install [ntfy app](https://apps.apple.com/app/ntfy/id1625396347) and subscribe to your topic
+   - **Web**: Visit `https://ntfy.sh/your-topic-name`
+3. Enter your topic name in Settings > Notifications
+4. No account or API key needed - it just works!
+
 ### AI Extraction Setup (Highly Recommended)
 
 For dramatically improved compatibility with difficult sites:
@@ -181,7 +200,8 @@ For dramatically improved compatibility with difficult sites:
 3. Choose your provider:
    - **Anthropic (Claude)** - Get key from [console.anthropic.com](https://console.anthropic.com)
    - **OpenAI (GPT)** - Get key from [platform.openai.com](https://platform.openai.com/api-keys)
-4. Enter your API key
+   - **Ollama (Local)** - Free, runs locally. Install from [ollama.ai](https://ollama.ai), then `ollama pull llama3.2`
+4. Enter your API key (or Ollama server URL for local)
 5. Use "Test Extraction" to verify it works
 
 The AI automatically activates when standard scraping fails to extract a price, providing a reliable fallback.
@@ -218,6 +238,7 @@ The AI automatically activates when standard scraping fails to extract a price, 
 | POST | `/api/settings/notifications/test/telegram` | Send test Telegram notification |
 | POST | `/api/settings/notifications/test/discord` | Send test Discord notification |
 | POST | `/api/settings/notifications/test/pushover` | Send test Pushover notification |
+| POST | `/api/settings/notifications/test/ntfy` | Send test ntfy notification |
 | GET | `/api/settings/ai` | Get AI extraction settings |
 | PUT | `/api/settings/ai` | Update AI settings |
 | POST | `/api/settings/ai/test` | Test AI extraction on a URL |
