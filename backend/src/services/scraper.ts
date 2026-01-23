@@ -686,8 +686,12 @@ const siteScrapers: SiteScraper[] = [
 // Generic selectors as fallback
 const genericPriceSelectors = [
   '[itemprop="price"]',
+  '[data-price-amount]',  // Magento 2
   '[data-price]',
   '[data-product-price]',
+  '.price-wrapper [data-price-amount]',  // Magento 2 price wrapper
+  '.price-box .price',  // Magento price box
+  '.special-price .price',  // Magento special/sale price
   '.price',
   '.product-price',
   '.current-price',
@@ -1074,8 +1078,28 @@ function extractGenericPrice($: CheerioAPI): ParsedPrice | null {
         return;
       }
 
-      const text = $el.attr('content') || $el.attr('data-price') || $el.text();
-      const parsed = parsePrice(text);
+      // Check various attributes where price might be stored
+      const priceAmount = $el.attr('data-price-amount');  // Magento 2
+      const dataPrice = $el.attr('data-price');
+      const content = $el.attr('content');
+      const text = $el.text();
+
+      // Try data-price-amount first (Magento stores numeric value here)
+      if (priceAmount) {
+        const price = parseFloat(priceAmount);
+        if (!isNaN(price) && price > 0) {
+          // Try to detect currency from nearby elements or default to USD
+          const currencyEl = $el.closest('.price-box').find('[data-price-type]').first();
+          const priceText = currencyEl.length ? currencyEl.text() : text;
+          const currencyMatch = priceText.match(/([A-Z]{3}|[$€£¥₹])/);
+          const currency = currencyMatch ? (currencyMatch[1] === '$' ? 'USD' : currencyMatch[1] === '€' ? 'EUR' : currencyMatch[1] === '£' ? 'GBP' : currencyMatch[1]) : 'USD';
+          prices.push({ price, currency });
+          return;
+        }
+      }
+
+      const priceStr = content || dataPrice || text;
+      const parsed = parsePrice(priceStr);
       if (parsed && parsed.price > 0) {
         prices.push(parsed);
       }
