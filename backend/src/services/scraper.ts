@@ -681,6 +681,75 @@ const siteScrapers: SiteScraper[] = [
     },
   },
 
+  // Magento 2 (generic - covers many sites including Degussa)
+  {
+    match: (url) => {
+      // Match common Magento indicators in URL or just try for any .html product page
+      return /\.(html|htm)$/i.test(url) || /\/catalog\/product\//i.test(url);
+    },
+    scrape: ($) => {
+      let price: ParsedPrice | null = null;
+      let name: string | null = null;
+      let imageUrl: string | null = null;
+
+      // Magento 2 stores prices in data-price-amount attribute
+      // Look for the final/special price first, then regular price
+      const priceSelectors = [
+        '.price-box .special-price [data-price-amount]',
+        '.price-box .price-final_price [data-price-amount]',
+        '.price-box [data-price-type="finalPrice"] [data-price-amount]',
+        '.price-box [data-price-amount]',
+        '[data-price-amount]',
+      ];
+
+      for (const selector of priceSelectors) {
+        const el = $(selector).first();
+        if (el.length) {
+          const priceAmount = el.attr('data-price-amount');
+          if (priceAmount) {
+            const priceValue = parseFloat(priceAmount);
+            if (!isNaN(priceValue) && priceValue > 0) {
+              // Detect currency from the page
+              let currency = 'USD';
+              const priceText = el.closest('.price-box').text() || el.parent().text() || '';
+              const currencyMatch = priceText.match(/\b(CHF|EUR|GBP|USD|CAD|AUD)\b/i);
+              if (currencyMatch) {
+                currency = currencyMatch[1].toUpperCase();
+              } else {
+                // Check for currency symbols
+                const symbolMatch = priceText.match(/([$€£])/);
+                if (symbolMatch) {
+                  currency = symbolMatch[1] === '€' ? 'EUR' : symbolMatch[1] === '£' ? 'GBP' : 'USD';
+                }
+              }
+              price = { price: priceValue, currency };
+              break;
+            }
+          }
+        }
+      }
+
+      // Get product name
+      name = $('h1.page-title span').text().trim() ||
+             $('h1.product-name').text().trim() ||
+             $('.product-info-main h1').text().trim() ||
+             $('[data-ui-id="page-title-wrapper"]').text().trim() ||
+             null;
+
+      // Get product image
+      imageUrl = $('[data-gallery-role="gallery"] img').first().attr('src') ||
+                 $('.product.media img').first().attr('src') ||
+                 $('.fotorama__stage img').first().attr('src') ||
+                 null;
+
+      // Only return if we found a price (indicates it's likely a Magento site)
+      if (price) {
+        return { name, price, imageUrl };
+      }
+      return {};
+    },
+  },
+
 ];
 
 // Generic selectors as fallback
@@ -1088,11 +1157,35 @@ function extractGenericPrice($: CheerioAPI): ParsedPrice | null {
       if (priceAmount) {
         const price = parseFloat(priceAmount);
         if (!isNaN(price) && price > 0) {
-          // Try to detect currency from nearby elements or default to USD
-          const currencyEl = $el.closest('.price-box').find('[data-price-type]').first();
-          const priceText = currencyEl.length ? currencyEl.text() : text;
-          const currencyMatch = priceText.match(/([A-Z]{3}|[$€£¥₹])/);
-          const currency = currencyMatch ? (currencyMatch[1] === '$' ? 'USD' : currencyMatch[1] === '€' ? 'EUR' : currencyMatch[1] === '£' ? 'GBP' : currencyMatch[1]) : 'USD';
+          // Try to detect currency from nearby elements, parent, or page
+          let currency = 'USD';
+
+          // Look for currency in the element's text, parent, and price-box container
+          const textSources = [
+            text,
+            $el.parent().text(),
+            $el.closest('.price-box').text(),
+            $el.closest('.price-wrapper').text(),
+            $el.closest('[class*="price"]').text(),
+          ];
+
+          for (const source of textSources) {
+            if (!source) continue;
+            // Look for known currency codes first (more specific)
+            const currencyCodeMatch = source.match(/\b(CHF|EUR|GBP|USD|CAD|AUD|JPY|INR)\b/i);
+            if (currencyCodeMatch) {
+              currency = currencyCodeMatch[1].toUpperCase();
+              break;
+            }
+            // Then try currency symbols
+            const symbolMatch = source.match(/([$€£¥₹])/);
+            if (symbolMatch) {
+              const symbolMap: Record<string, string> = { '$': 'USD', '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₹': 'INR' };
+              currency = symbolMap[symbolMatch[1]] || 'USD';
+              break;
+            }
+          }
+
           prices.push({ price, currency });
           return;
         }
