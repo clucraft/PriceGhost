@@ -66,6 +66,7 @@ The cost is minimal (fractions of a cent per extraction) and dramatically improv
 - **Stock change notifications** - Get notified when items come back in stock
 
 ### User Experience
+- **PWA Support&& - Support for installing on mobile through "Add to Home Screen"
 - **Dark/Light mode** - Automatic system theme detection with manual toggle
 - **Toast notifications** - Visual feedback for all actions
 - **Responsive design** - Works on desktop and mobile
