@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/311f410c-170c-4f0c-81e3-3ba7e0141fa7" alt="PriceGhost Dashboard" width="800">
+  <img width="1332" height="1108" alt="image" src="https://github.com/user-attachments/assets/6b75f889-06d7-41b3-bc0a-145b132109fd" />
 </p>
 
 ---
