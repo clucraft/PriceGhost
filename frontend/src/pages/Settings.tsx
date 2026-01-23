@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/Layout';
+import PasswordInput from '../components/PasswordInput';
 import {
   settingsApi,
   profileApi,
@@ -983,8 +984,7 @@ export default function Settings() {
 
                 <div className="settings-form-group">
                   <label>Bot Token</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={telegramBotToken}
                     onChange={(e) => setTelegramBotToken(e.target.value)}
                     placeholder={notificationSettings?.telegram_configured ? '••••••••••••••••' : 'Enter your bot token'}
@@ -1053,8 +1053,7 @@ export default function Settings() {
 
                 <div className="settings-form-group">
                   <label>Webhook URL</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={discordWebhookUrl}
                     onChange={(e) => setDiscordWebhookUrl(e.target.value)}
                     placeholder={notificationSettings?.discord_configured ? '••••••••••••••••' : 'https://discord.com/api/webhooks/...'}
@@ -1112,8 +1111,7 @@ export default function Settings() {
 
                 <div className="settings-form-group">
                   <label>User Key</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={pushoverUserKey}
                     onChange={(e) => setPushoverUserKey(e.target.value)}
                     placeholder={notificationSettings?.pushover_configured ? '••••••••••••••••' : 'Enter your user key'}
@@ -1123,8 +1121,7 @@ export default function Settings() {
 
                 <div className="settings-form-group">
                   <label>Application API Token</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     value={pushoverAppToken}
                     onChange={(e) => setPushoverAppToken(e.target.value)}
                     placeholder={notificationSettings?.pushover_configured ? '••••••••••••••••' : 'Enter your app token'}
@@ -1208,8 +1205,7 @@ export default function Settings() {
                     {aiProvider === 'anthropic' && (
                       <div className="settings-form-group">
                         <label>Anthropic API Key</label>
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={anthropicApiKey}
                           onChange={(e) => setAnthropicApiKey(e.target.value)}
                           placeholder={aiSettings?.anthropic_configured ? '••••••••••••••••' : 'sk-ant-...'}
@@ -1227,8 +1223,7 @@ export default function Settings() {
                     {aiProvider === 'openai' && (
                       <div className="settings-form-group">
                         <label>OpenAI API Key</label>
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={openaiApiKey}
                           onChange={(e) => setOpenaiApiKey(e.target.value)}
                           placeholder={aiSettings?.openai_configured ? '••••••••••••••••' : 'sk-...'}
