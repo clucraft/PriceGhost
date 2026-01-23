@@ -30,19 +30,25 @@ Built with Claude Opus 4.5.
 
 ---
 
-## Strongly Recommended: Enable AI Extraction
+## Strongly Recommended: Enable AI Features
 
-While PriceGhost includes multiple scraping strategies (JSON-LD, meta tags, CSS selectors, pattern matching, and headless browser), **we highly recommend enabling AI-powered extraction** for the best results.
+While PriceGhost includes multiple scraping strategies (JSON-LD, meta tags, CSS selectors, pattern matching, and headless browser), **we highly recommend enabling AI-powered features** for the best results.
 
-Modern e-commerce sites use increasingly complex layouts, dynamic pricing, and anti-scraping measures. AI extraction serves as an intelligent fallback that can understand page context and reliably extract prices even from difficult sites.
+Modern e-commerce sites use increasingly complex layouts, dynamic pricing, and anti-scraping measures. AI can understand page context and reliably extract prices even from difficult sites.
+
+### AI Extraction (Fallback)
+When standard scraping fails to find a price, AI extraction kicks in as a fallback.
+
+### AI Verification (Recommended)
+Verifies every scraped price to ensure accuracy. This catches issues like accidentally scraping a "savings" amount ($189.99 off) instead of the actual product price ($675.59).
 
 **To enable:**
-1. Get an API key from [Anthropic](https://console.anthropic.com) (Claude) or [OpenAI](https://platform.openai.com)
+1. Get an API key from [Anthropic](https://console.anthropic.com) (Claude), [OpenAI](https://platform.openai.com), or install [Ollama](https://ollama.ai) locally (free)
 2. Go to Settings > AI Extraction
-3. Enable AI extraction and enter your key
-4. That's it! AI will automatically kick in when standard scraping fails
+3. Enable **AI Extraction** (fallback) and/or **AI Verification** (recommended)
+4. Select your provider and enter your API key (or Ollama URL)
 
-The cost is minimal (fractions of a cent per extraction) and dramatically improves success rates.
+The cost is minimal (fractions of a cent per API call with Claude Haiku/GPT-4o-mini). Ollama is completely free but requires local compute.
 
 ---
 
@@ -51,7 +57,8 @@ The cost is minimal (fractions of a cent per extraction) and dramatically improv
 ### Price Tracking
 - **Universal scraping** - Works with virtually any e-commerce website
 - **Smart price detection** - Uses multiple strategies: JSON-LD structured data, meta tags, CSS selectors, and pattern matching
-- **AI-powered fallback** - Optional Claude (Anthropic) or GPT (OpenAI) integration for difficult-to-scrape sites
+- **AI-powered fallback** - Optional Claude, GPT, or Ollama (local) integration for difficult-to-scrape sites
+- **AI price verification** - Verify scraped prices with AI to catch extraction errors (e.g., scraping savings amounts instead of actual prices)
 - **Headless browser support** - Puppeteer with stealth mode for JavaScript-rendered pages
 - **Price history charts** - Interactive visualization with customizable date ranges (7d, 30d, 90d, all time)
 - **7-day sparklines** - Quick price trend overview on the dashboard
