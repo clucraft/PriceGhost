@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '../api/client';
 import Sparkline from './Sparkline';
+import AIStatusBadge from './AIStatusBadge';
 
 interface ProductCardProps {
   product: Product;
@@ -502,9 +503,12 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
           </span>
         ) : (
           <>
-            <span className="product-current-price">
-              {formatPrice(product.current_price, product.currency)}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <span className="product-current-price">
+                {formatPrice(product.current_price, product.currency)}
+              </span>
+              <AIStatusBadge status={product.ai_status} size="small" />
+            </div>
             {product.price_change_7d !== null && product.price_change_7d !== undefined && (
               <span className={`product-price-change ${priceChangeClass}`}>
                 {formatPriceChange(product.price_change_7d)} (7d)

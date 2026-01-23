@@ -126,10 +126,11 @@ async function checkPrices(): Promise<void> {
             await priceHistoryQueries.create(
               product.id,
               scrapedData.price.price,
-              scrapedData.price.currency
+              scrapedData.price.currency,
+              scrapedData.aiStatus
             );
             console.log(
-              `Recorded new price for product ${product.id}: ${scrapedData.price.currency} ${scrapedData.price.price}`
+              `Recorded new price for product ${product.id}: ${scrapedData.price.currency} ${scrapedData.price.price}${scrapedData.aiStatus ? ` (AI: ${scrapedData.aiStatus})` : ''}`
             );
           } else {
             console.log(`Price unchanged for product ${product.id}`);

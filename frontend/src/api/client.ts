@@ -45,6 +45,7 @@ export const authApi = {
 
 // Products API
 export type StockStatus = 'in_stock' | 'out_of_stock' | 'unknown';
+export type AIStatus = 'verified' | 'corrected' | null;
 
 export interface SparklinePoint {
   price: number;
@@ -67,6 +68,7 @@ export interface Product {
   created_at: string;
   current_price: number | null;
   currency: string | null;
+  ai_status: AIStatus;
   sparkline?: SparklinePoint[];
   price_change_7d?: number | null;
   min_price?: number | null;

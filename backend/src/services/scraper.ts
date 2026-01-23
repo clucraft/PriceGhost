@@ -81,12 +81,15 @@ async function scrapeWithBrowser(url: string): Promise<string> {
   }
 }
 
+export type AIStatus = 'verified' | 'corrected' | null;
+
 export interface ScrapedProduct {
   name: string | null;
   price: ParsedPrice | null;
   imageUrl: string | null;
   url: string;
   stockStatus: StockStatus;
+  aiStatus: AIStatus;
 }
 
 // Site-specific scraper configurations
@@ -721,6 +724,7 @@ export async function scrapeProduct(url: string, userId?: number): Promise<Scrap
     imageUrl: null,
     url,
     stockStatus: 'unknown',
+    aiStatus: null,
   };
 
   let html: string = '';
@@ -833,11 +837,14 @@ export async function scrapeProduct(url: string, userId?: number): Promise<Scrap
         if (verifyResult) {
           if (verifyResult.isCorrect) {
             console.log(`[AI Verify] Confirmed price $${result.price.price} is correct (confidence: ${verifyResult.confidence})`);
+            result.aiStatus = 'verified';
           } else if (verifyResult.suggestedPrice && verifyResult.confidence > 0.6) {
             console.log(`[AI Verify] Price correction: $${result.price.price} -> $${verifyResult.suggestedPrice.price} (${verifyResult.reason})`);
             result.price = verifyResult.suggestedPrice;
+            result.aiStatus = 'corrected';
           } else {
             console.log(`[AI Verify] Price might be incorrect but no confident suggestion: ${verifyResult.reason}`);
+            // Don't set aiStatus if verification was inconclusive
           }
         }
       } catch (verifyError) {

@@ -324,6 +324,7 @@ function getJitterSeconds(): number {
 export interface ProductWithLatestPrice extends Product {
   current_price: number | null;
   currency: string | null;
+  ai_status: AIStatus;
 }
 
 export interface SparklinePoint {
@@ -340,10 +341,10 @@ export interface ProductWithSparkline extends ProductWithLatestPrice {
 export const productQueries = {
   findByUserId: async (userId: number): Promise<ProductWithLatestPrice[]> => {
     const result = await pool.query(
-      `SELECT p.*, ph.price as current_price, ph.currency
+      `SELECT p.*, ph.price as current_price, ph.currency, ph.ai_status
        FROM products p
        LEFT JOIN LATERAL (
-         SELECT price, currency FROM price_history
+         SELECT price, currency, ai_status FROM price_history
          WHERE product_id = p.id
          ORDER BY recorded_at DESC
          LIMIT 1
@@ -358,10 +359,10 @@ export const productQueries = {
   findByUserIdWithSparkline: async (userId: number): Promise<ProductWithSparkline[]> => {
     // Get all products with current price
     const productsResult = await pool.query(
-      `SELECT p.*, ph.price as current_price, ph.currency
+      `SELECT p.*, ph.price as current_price, ph.currency, ph.ai_status
        FROM products p
        LEFT JOIN LATERAL (
-         SELECT price, currency FROM price_history
+         SELECT price, currency, ai_status FROM price_history
          WHERE product_id = p.id
          ORDER BY recorded_at DESC
          LIMIT 1
@@ -432,10 +433,10 @@ export const productQueries = {
 
   findById: async (id: number, userId: number): Promise<ProductWithLatestPrice | null> => {
     const result = await pool.query(
-      `SELECT p.*, ph.price as current_price, ph.currency
+      `SELECT p.*, ph.price as current_price, ph.currency, ph.ai_status
        FROM products p
        LEFT JOIN LATERAL (
-         SELECT price, currency FROM price_history
+         SELECT price, currency, ai_status FROM price_history
          WHERE product_id = p.id
          ORDER BY recorded_at DESC
          LIMIT 1
@@ -553,11 +554,14 @@ export const productQueries = {
 };
 
 // Price History types and queries
+export type AIStatus = 'verified' | 'corrected' | null;
+
 export interface PriceHistory {
   id: number;
   product_id: number;
   price: number;
   currency: string;
+  ai_status: AIStatus;
   recorded_at: Date;
 }
 
@@ -586,13 +590,14 @@ export const priceHistoryQueries = {
   create: async (
     productId: number,
     price: number,
-    currency: string = 'USD'
+    currency: string = 'USD',
+    aiStatus: AIStatus = null
   ): Promise<PriceHistory> => {
     const result = await pool.query(
-      `INSERT INTO price_history (product_id, price, currency)
-       VALUES ($1, $2, $3)
+      `INSERT INTO price_history (product_id, price, currency, ai_status)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [productId, price, currency]
+      [productId, price, currency, aiStatus]
     );
     return result.rows[0];
   },

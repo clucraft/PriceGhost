@@ -77,6 +77,16 @@ async function runMigrations() {
         ON stock_status_history(product_id, changed_at);
     `);
 
+    // Add ai_status column to price_history table
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'price_history' AND column_name = 'ai_status') THEN
+          ALTER TABLE price_history ADD COLUMN ai_status VARCHAR(20);
+        END IF;
+      END $$;
+    `);
+
     console.log('Database migrations completed');
   } catch (error) {
     console.error('Migration error:', error);

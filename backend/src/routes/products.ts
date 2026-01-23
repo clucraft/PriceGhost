@@ -65,7 +65,8 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       await priceHistoryQueries.create(
         product.id,
         scrapedData.price.price,
-        scrapedData.price.currency
+        scrapedData.price.currency,
+        scrapedData.aiStatus
       );
     }
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import PriceChart from '../components/PriceChart';
 import StockTimeline from '../components/StockTimeline';
+import AIStatusBadge from '../components/AIStatusBadge';
 import { useToast } from '../context/ToastContext';
 import {
   productsApi,
@@ -438,10 +439,15 @@ export default function ProductDetail() {
               </div>
             ) : null}
 
-            <div className="product-detail-price">
-              {product.stock_status === 'out_of_stock'
-                ? 'Price unavailable'
-                : formatPrice(product.current_price, product.currency)}
+            <div className="product-detail-price" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>
+                {product.stock_status === 'out_of_stock'
+                  ? 'Price unavailable'
+                  : formatPrice(product.current_price, product.currency)}
+              </span>
+              {product.stock_status !== 'out_of_stock' && (
+                <AIStatusBadge status={product.ai_status} />
+              )}
             </div>
 
             {priceChange !== null && priceChange !== 0 && (

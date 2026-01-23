@@ -1304,6 +1304,58 @@ export default function Settings() {
                   />
                 </div>
 
+                {aiVerificationEnabled && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    padding: '0.75rem',
+                    background: 'var(--background)',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.8125rem',
+                  }}>
+                    <div style={{ fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text)' }}>
+                      Price badges explained:
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.2rem',
+                          fontSize: '0.75rem',
+                          padding: '0.15rem 0.4rem',
+                          borderRadius: '0.25rem',
+                          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                          color: '#10b981',
+                          fontWeight: 500,
+                        }}>
+                          <span style={{ fontSize: '0.8rem' }}>✓</span> AI
+                        </span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          AI verified the scraped price is correct
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.2rem',
+                          fontSize: '0.75rem',
+                          padding: '0.15rem 0.4rem',
+                          borderRadius: '0.25rem',
+                          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                          color: '#f59e0b',
+                          fontWeight: 500,
+                        }}>
+                          <span style={{ fontSize: '0.8rem' }}>⚡</span> AI
+                        </span>
+                        <span style={{ color: 'var(--text-muted)' }}>
+                          AI corrected an incorrect price (e.g., scraped savings amount instead of actual price)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {(aiEnabled || aiVerificationEnabled) && (
                   <>
                     <div className="settings-form-group">

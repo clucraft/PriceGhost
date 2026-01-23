@@ -62,8 +62,8 @@ router.post('/:productId/refresh', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    // Scrape product data including price and stock status
-    const scrapedData = await scrapeProduct(product.url);
+    // Scrape product data including price and stock status (pass userId for AI verification)
+    const scrapedData = await scrapeProduct(product.url, userId);
 
     // Update stock status and record change if different
     if (scrapedData.stockStatus !== product.stock_status) {
@@ -77,7 +77,8 @@ router.post('/:productId/refresh', async (req: AuthRequest, res: Response) => {
       newPrice = await priceHistoryQueries.create(
         productId,
         scrapedData.price.price,
-        scrapedData.price.currency
+        scrapedData.price.currency,
+        scrapedData.aiStatus
       );
     }
 
@@ -90,6 +91,7 @@ router.post('/:productId/refresh', async (req: AuthRequest, res: Response) => {
         : 'Price refreshed successfully',
       price: newPrice,
       stockStatus: scrapedData.stockStatus,
+      aiStatus: scrapedData.aiStatus,
     });
   } catch (error) {
     console.error('Error refreshing price:', error);
