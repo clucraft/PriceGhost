@@ -14,6 +14,39 @@ export interface AIExtractionResult {
   confidence: number;
 }
 
+export interface AIVerificationResult {
+  isCorrect: boolean;
+  confidence: number;
+  suggestedPrice: ParsedPrice | null;
+  reason: string;
+}
+
+const VERIFICATION_PROMPT = `You are a price verification assistant. I scraped a product page and found a price. Please verify if this price is correct.
+
+Scraped Price: $SCRAPED_PRICE$ $CURRENCY$
+
+Analyze the HTML content below and determine:
+1. Is the scraped price the correct CURRENT/SALE price for the main product?
+2. If not, what is the correct price?
+
+Common issues to watch for:
+- Scraped price might be a "savings" amount (e.g., "Save $189.99")
+- Scraped price might be from a bundle/combo deal section
+- Scraped price might be shipping cost or add-on price
+- Scraped price might be the original/crossed-out price instead of the sale price
+
+Return a JSON object with:
+- isCorrect: boolean - true if the scraped price is correct
+- confidence: number from 0 to 1
+- suggestedPrice: the correct price as a number (or null if scraped price is correct)
+- suggestedCurrency: currency code if suggesting a different price
+- reason: brief explanation of your decision
+
+Only return valid JSON, no explanation text outside the JSON.
+
+HTML Content:
+`;
+
 const EXTRACTION_PROMPT = `You are a price extraction assistant. Analyze the following HTML content from a product page and extract the product information.
 
 Return a JSON object with these fields:
@@ -180,6 +213,153 @@ async function extractWithOllama(
   return parseAIResponse(content);
 }
 
+// Verification functions for each provider
+async function verifyWithAnthropic(
+  html: string,
+  scrapedPrice: number,
+  currency: string,
+  apiKey: string
+): Promise<AIVerificationResult> {
+  const anthropic = new Anthropic({ apiKey });
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = VERIFICATION_PROMPT
+    .replace('$SCRAPED_PRICE$', scrapedPrice.toString())
+    .replace('$CURRENCY$', currency) + preparedHtml;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-3-haiku-20240307',
+    max_tokens: 512,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new Error('Unexpected response type from Anthropic');
+  }
+
+  return parseVerificationResponse(content.text, scrapedPrice, currency);
+}
+
+async function verifyWithOpenAI(
+  html: string,
+  scrapedPrice: number,
+  currency: string,
+  apiKey: string
+): Promise<AIVerificationResult> {
+  const openai = new OpenAI({ apiKey });
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = VERIFICATION_PROMPT
+    .replace('$SCRAPED_PRICE$', scrapedPrice.toString())
+    .replace('$CURRENCY$', currency) + preparedHtml;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    max_tokens: 512,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error('No response from OpenAI');
+  }
+
+  return parseVerificationResponse(content, scrapedPrice, currency);
+}
+
+async function verifyWithOllama(
+  html: string,
+  scrapedPrice: number,
+  currency: string,
+  baseUrl: string,
+  model: string
+): Promise<AIVerificationResult> {
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = VERIFICATION_PROMPT
+    .replace('$SCRAPED_PRICE$', scrapedPrice.toString())
+    .replace('$CURRENCY$', currency) + preparedHtml;
+
+  const response = await axios.post(
+    `${baseUrl}/api/chat`,
+    {
+      model: model,
+      messages: [{ role: 'user', content: prompt }],
+      stream: false,
+    },
+    {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 120000,
+    }
+  );
+
+  const content = response.data?.message?.content;
+  if (!content) {
+    throw new Error('No response from Ollama');
+  }
+
+  return parseVerificationResponse(content, scrapedPrice, currency);
+}
+
+function parseVerificationResponse(
+  responseText: string,
+  originalPrice: number,
+  originalCurrency: string
+): AIVerificationResult {
+  console.log(`[AI Verify] Raw response: ${responseText.substring(0, 500)}...`);
+
+  // Default result if parsing fails
+  const defaultResult: AIVerificationResult = {
+    isCorrect: true, // Assume correct if we can't parse
+    confidence: 0.5,
+    suggestedPrice: null,
+    reason: 'Could not parse AI response',
+  };
+
+  let jsonStr = responseText.trim();
+
+  // Handle markdown code blocks
+  const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    jsonStr = jsonMatch[1].trim();
+  }
+
+  // Try to find JSON object
+  const objectMatch = jsonStr.match(/\{[\s\S]*\}/);
+  if (objectMatch) {
+    jsonStr = objectMatch[0];
+  }
+
+  try {
+    const data = JSON.parse(jsonStr);
+    console.log(`[AI Verify] Parsed:`, JSON.stringify(data, null, 2));
+
+    let suggestedPrice: ParsedPrice | null = null;
+    if (!data.isCorrect && data.suggestedPrice !== null && data.suggestedPrice !== undefined) {
+      const priceNum = typeof data.suggestedPrice === 'string'
+        ? parseFloat(data.suggestedPrice.replace(/[^0-9.]/g, ''))
+        : data.suggestedPrice;
+
+      if (!isNaN(priceNum) && priceNum > 0) {
+        suggestedPrice = {
+          price: priceNum,
+          currency: data.suggestedCurrency || originalCurrency,
+        };
+      }
+    }
+
+    return {
+      isCorrect: data.isCorrect ?? true,
+      confidence: data.confidence ?? 0.5,
+      suggestedPrice,
+      reason: data.reason || 'No reason provided',
+    };
+  } catch (error) {
+    console.error('[AI Verify] Failed to parse response:', responseText);
+    return defaultResult;
+  }
+}
+
 function parseAIResponse(responseText: string): AIExtractionResult {
   console.log(`[AI] Raw response: ${responseText.substring(0, 500)}...`);
 
@@ -304,6 +484,43 @@ export async function tryAIExtraction(
     return null;
   } catch (error) {
     console.error(`[AI] Extraction failed for ${url}:`, error);
+    return null;
+  }
+}
+
+// Export for use in scraper to verify scraped prices
+export async function tryAIVerification(
+  url: string,
+  html: string,
+  scrapedPrice: number,
+  currency: string,
+  userId: number
+): Promise<AIVerificationResult | null> {
+  try {
+    const { userQueries } = await import('../models');
+    const settings = await userQueries.getAISettings(userId);
+
+    // Check if AI verification is enabled (separate from AI extraction fallback)
+    if (!settings?.ai_verification_enabled) {
+      return null;
+    }
+
+    // Need a configured provider
+    if (settings.ai_provider === 'anthropic' && settings.anthropic_api_key) {
+      console.log(`[AI Verify] Using Anthropic to verify $${scrapedPrice} for ${url}`);
+      return await verifyWithAnthropic(html, scrapedPrice, currency, settings.anthropic_api_key);
+    } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
+      console.log(`[AI Verify] Using OpenAI to verify $${scrapedPrice} for ${url}`);
+      return await verifyWithOpenAI(html, scrapedPrice, currency, settings.openai_api_key);
+    } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
+      console.log(`[AI Verify] Using Ollama to verify $${scrapedPrice} for ${url}`);
+      return await verifyWithOllama(html, scrapedPrice, currency, settings.ollama_base_url, settings.ollama_model);
+    }
+
+    console.log(`[AI Verify] Verification enabled but no provider configured`);
+    return null;
+  } catch (error) {
+    console.error(`[AI Verify] Verification failed for ${url}:`, error);
     return null;
   }
 }

@@ -47,6 +47,7 @@ export default function Settings() {
   // AI state
   const [aiSettings, setAISettings] = useState<AISettings | null>(null);
   const [aiEnabled, setAIEnabled] = useState(false);
+  const [aiVerificationEnabled, setAIVerificationEnabled] = useState(false);
   const [aiProvider, setAIProvider] = useState<'anthropic' | 'openai' | 'ollama'>('anthropic');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -97,6 +98,7 @@ export default function Settings() {
       // Populate AI fields with actual values
       setAISettings(aiRes.data);
       setAIEnabled(aiRes.data.ai_enabled);
+      setAIVerificationEnabled(aiRes.data.ai_verification_enabled ?? false);
       if (aiRes.data.ai_provider) {
         setAIProvider(aiRes.data.ai_provider);
       }
@@ -353,6 +355,7 @@ export default function Settings() {
     try {
       const response = await settingsApi.updateAI({
         ai_enabled: aiEnabled,
+        ai_verification_enabled: aiVerificationEnabled,
         ai_provider: aiProvider,
         anthropic_api_key: anthropicApiKey || undefined,
         openai_api_key: openaiApiKey || undefined,
@@ -360,6 +363,7 @@ export default function Settings() {
         ollama_model: aiProvider === 'ollama' ? ollamaModel || null : undefined,
       });
       setAISettings(response.data);
+      setAIVerificationEnabled(response.data.ai_verification_enabled ?? false);
       setAnthropicApiKey('');
       setOpenaiApiKey('');
       setSuccess('AI settings saved successfully');
@@ -1287,7 +1291,20 @@ export default function Settings() {
                   />
                 </div>
 
-                {aiEnabled && (
+                <div className="settings-toggle">
+                  <div className="settings-toggle-label">
+                    <span className="settings-toggle-title">Enable AI Verification</span>
+                    <span className="settings-toggle-description">
+                      Verify all scraped prices with AI to ensure accuracy
+                    </span>
+                  </div>
+                  <button
+                    className={`toggle-switch ${aiVerificationEnabled ? 'active' : ''}`}
+                    onClick={() => setAIVerificationEnabled(!aiVerificationEnabled)}
+                  />
+                </div>
+
+                {(aiEnabled || aiVerificationEnabled) && (
                   <>
                     <div className="settings-form-group">
                       <label>AI Provider</label>

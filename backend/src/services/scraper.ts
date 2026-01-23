@@ -818,7 +818,34 @@ export async function scrapeProduct(url: string, userId?: number): Promise<Scrap
       result.imageUrl = $('meta[property="og:image"]').attr('content') || null;
     }
 
-    // If we still don't have a price and userId is provided, try AI extraction
+    // If we have a price and userId is provided, try AI verification
+    if (result.price && userId && html) {
+      try {
+        const { tryAIVerification } = await import('./ai-extractor');
+        const verifyResult = await tryAIVerification(
+          url,
+          html,
+          result.price.price,
+          result.price.currency,
+          userId
+        );
+
+        if (verifyResult) {
+          if (verifyResult.isCorrect) {
+            console.log(`[AI Verify] Confirmed price $${result.price.price} is correct (confidence: ${verifyResult.confidence})`);
+          } else if (verifyResult.suggestedPrice && verifyResult.confidence > 0.6) {
+            console.log(`[AI Verify] Price correction: $${result.price.price} -> $${verifyResult.suggestedPrice.price} (${verifyResult.reason})`);
+            result.price = verifyResult.suggestedPrice;
+          } else {
+            console.log(`[AI Verify] Price might be incorrect but no confident suggestion: ${verifyResult.reason}`);
+          }
+        }
+      } catch (verifyError) {
+        console.error(`[AI Verify] Verification failed for ${url}:`, verifyError);
+      }
+    }
+
+    // If we still don't have a price and userId is provided, try AI extraction as fallback
     if (!result.price && userId && html) {
       try {
         const { tryAIExtraction } = await import('./ai-extractor');

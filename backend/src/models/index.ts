@@ -36,6 +36,7 @@ export interface NotificationSettings {
 
 export interface AISettings {
   ai_enabled: boolean;
+  ai_verification_enabled: boolean;
   ai_provider: 'anthropic' | 'openai' | 'ollama' | null;
   anthropic_api_key: string | null;
   openai_api_key: string | null;
@@ -209,7 +210,9 @@ export const userQueries = {
 
   getAISettings: async (id: number): Promise<AISettings | null> => {
     const result = await pool.query(
-      'SELECT ai_enabled, ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model FROM users WHERE id = $1',
+      `SELECT ai_enabled, COALESCE(ai_verification_enabled, false) as ai_verification_enabled,
+              ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model
+       FROM users WHERE id = $1`,
       [id]
     );
     return result.rows[0] || null;
@@ -226,6 +229,10 @@ export const userQueries = {
     if (settings.ai_enabled !== undefined) {
       fields.push(`ai_enabled = $${paramIndex++}`);
       values.push(settings.ai_enabled);
+    }
+    if (settings.ai_verification_enabled !== undefined) {
+      fields.push(`ai_verification_enabled = $${paramIndex++}`);
+      values.push(settings.ai_verification_enabled);
     }
     if (settings.ai_provider !== undefined) {
       fields.push(`ai_provider = $${paramIndex++}`);
@@ -253,7 +260,8 @@ export const userQueries = {
     values.push(id.toString());
     const result = await pool.query(
       `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}
-       RETURNING ai_enabled, ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model`,
+       RETURNING ai_enabled, COALESCE(ai_verification_enabled, false) as ai_verification_enabled,
+                 ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model`,
       values
     );
     return result.rows[0] || null;

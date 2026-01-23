@@ -58,6 +58,9 @@ async function runMigrations() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ntfy_enabled') THEN
           ALTER TABLE users ADD COLUMN ntfy_enabled BOOLEAN DEFAULT true;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ai_verification_enabled') THEN
+          ALTER TABLE users ADD COLUMN ai_verification_enabled BOOLEAN DEFAULT false;
+        END IF;
       END $$;
     `);
 

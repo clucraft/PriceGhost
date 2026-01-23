@@ -196,6 +196,7 @@ export const settingsApi = {
 
   updateAI: (data: {
     ai_enabled?: boolean;
+    ai_verification_enabled?: boolean;
     ai_provider?: 'anthropic' | 'openai' | 'ollama' | null;
     anthropic_api_key?: string | null;
     openai_api_key?: string | null;
@@ -213,6 +214,7 @@ export const settingsApi = {
 // AI Settings types
 export interface AISettings {
   ai_enabled: boolean;
+  ai_verification_enabled: boolean;
   ai_provider: 'anthropic' | 'openai' | 'ollama' | null;
   anthropic_api_key: string | null;
   openai_api_key: string | null;
