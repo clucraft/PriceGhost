@@ -239,6 +239,7 @@ router.get('/ai', async (req: AuthRequest, res: Response) => {
 
     res.json({
       ai_enabled: settings.ai_enabled || false,
+      ai_verification_enabled: settings.ai_verification_enabled || false,
       ai_provider: settings.ai_provider || null,
       anthropic_api_key: settings.anthropic_api_key || null,
       openai_api_key: settings.openai_api_key || null,
@@ -255,10 +256,11 @@ router.get('/ai', async (req: AuthRequest, res: Response) => {
 router.put('/ai', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { ai_enabled, ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model } = req.body;
+    const { ai_enabled, ai_verification_enabled, ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model } = req.body;
 
     const settings = await userQueries.updateAISettings(userId, {
       ai_enabled,
+      ai_verification_enabled,
       ai_provider,
       anthropic_api_key,
       openai_api_key,
@@ -273,6 +275,7 @@ router.put('/ai', async (req: AuthRequest, res: Response) => {
 
     res.json({
       ai_enabled: settings.ai_enabled || false,
+      ai_verification_enabled: settings.ai_verification_enabled || false,
       ai_provider: settings.ai_provider || null,
       anthropic_api_key: settings.anthropic_api_key || null,
       openai_api_key: settings.openai_api_key || null,
