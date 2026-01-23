@@ -188,21 +188,36 @@ export const settingsApi = {
 
   updateAI: (data: {
     ai_enabled?: boolean;
-    ai_provider?: 'anthropic' | 'openai' | null;
+    ai_provider?: 'anthropic' | 'openai' | 'ollama' | null;
     anthropic_api_key?: string | null;
     openai_api_key?: string | null;
+    ollama_base_url?: string | null;
+    ollama_model?: string | null;
   }) => api.put<AISettings & { message: string }>('/settings/ai', data),
 
   testAI: (url: string) =>
     api.post<AITestResult>('/settings/ai/test', { url }),
+
+  testOllama: (baseUrl: string) =>
+    api.post<OllamaTestResult>('/settings/ai/test-ollama', { base_url: baseUrl }),
 };
 
 // AI Settings types
 export interface AISettings {
   ai_enabled: boolean;
-  ai_provider: 'anthropic' | 'openai' | null;
+  ai_provider: 'anthropic' | 'openai' | 'ollama' | null;
   anthropic_configured: boolean;
   openai_configured: boolean;
+  ollama_configured: boolean;
+  ollama_base_url: string | null;
+  ollama_model: string | null;
+}
+
+export interface OllamaTestResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  models?: string[];
 }
 
 export interface AITestResult {

@@ -44,9 +44,13 @@ export default function Settings() {
   // AI state
   const [aiSettings, setAISettings] = useState<AISettings | null>(null);
   const [aiEnabled, setAIEnabled] = useState(false);
-  const [aiProvider, setAIProvider] = useState<'anthropic' | 'openai'>('anthropic');
+  const [aiProvider, setAIProvider] = useState<'anthropic' | 'openai' | 'ollama'>('anthropic');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState('');
+  const [ollamaModel, setOllamaModel] = useState('');
+  const [availableOllamaModels, setAvailableOllamaModels] = useState<string[]>([]);
+  const [isTestingOllama, setIsTestingOllama] = useState(false);
   const [isSavingAI, setIsSavingAI] = useState(false);
   const [isTestingAI, setIsTestingAI] = useState(false);
   const [testUrl, setTestUrl] = useState('');
@@ -86,6 +90,12 @@ export default function Settings() {
       setAIEnabled(aiRes.data.ai_enabled);
       if (aiRes.data.ai_provider) {
         setAIProvider(aiRes.data.ai_provider);
+      }
+      if (aiRes.data.ollama_base_url) {
+        setOllamaBaseUrl(aiRes.data.ollama_base_url);
+      }
+      if (aiRes.data.ollama_model) {
+        setOllamaModel(aiRes.data.ollama_model);
       }
     } catch {
       setError('Failed to load settings');
@@ -299,6 +309,8 @@ export default function Settings() {
         ai_provider: aiProvider,
         anthropic_api_key: anthropicApiKey || undefined,
         openai_api_key: openaiApiKey || undefined,
+        ollama_base_url: aiProvider === 'ollama' ? ollamaBaseUrl || null : undefined,
+        ollama_model: aiProvider === 'ollama' ? ollamaModel || null : undefined,
       });
       setAISettings(response.data);
       setAnthropicApiKey('');
@@ -308,6 +320,28 @@ export default function Settings() {
       setError('Failed to save AI settings');
     } finally {
       setIsSavingAI(false);
+    }
+  };
+
+  const handleTestOllama = async () => {
+    clearMessages();
+    if (!ollamaBaseUrl) {
+      setError('Please enter the Ollama base URL');
+      return;
+    }
+    setIsTestingOllama(true);
+    try {
+      const response = await settingsApi.testOllama(ollamaBaseUrl);
+      if (response.data.success) {
+        setAvailableOllamaModels(response.data.models || []);
+        setSuccess(`Connected to Ollama! Found ${response.data.models?.length || 0} models.`);
+      } else {
+        setError(response.data.error || 'Failed to connect to Ollama');
+      }
+    } catch {
+      setError('Failed to connect to Ollama. Make sure it is running.');
+    } finally {
+      setIsTestingOllama(false);
     }
   };
 
@@ -1154,7 +1188,7 @@ export default function Settings() {
                       <label>AI Provider</label>
                       <select
                         value={aiProvider}
-                        onChange={(e) => setAIProvider(e.target.value as 'anthropic' | 'openai')}
+                        onChange={(e) => setAIProvider(e.target.value as 'anthropic' | 'openai' | 'ollama')}
                         style={{
                           width: '100%',
                           padding: '0.625rem 0.75rem',
@@ -1167,6 +1201,7 @@ export default function Settings() {
                       >
                         <option value="anthropic">Anthropic (Claude)</option>
                         <option value="openai">OpenAI (GPT)</option>
+                        <option value="ollama">Ollama (Local)</option>
                       </select>
                     </div>
 
@@ -1207,6 +1242,72 @@ export default function Settings() {
                         </p>
                       </div>
                     )}
+
+                    {aiProvider === 'ollama' && (
+                      <>
+                        <div className="settings-form-group">
+                          <label>Ollama Base URL</label>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input
+                              type="text"
+                              value={ollamaBaseUrl}
+                              onChange={(e) => setOllamaBaseUrl(e.target.value)}
+                              placeholder="http://localhost:11434"
+                              style={{ flex: 1 }}
+                            />
+                            <button
+                              className="btn btn-secondary"
+                              onClick={handleTestOllama}
+                              disabled={isTestingOllama || !ollamaBaseUrl}
+                              style={{ whiteSpace: 'nowrap' }}
+                            >
+                              {isTestingOllama ? 'Testing...' : 'Test Connection'}
+                            </button>
+                          </div>
+                          <p className="hint">
+                            The URL where Ollama is running. Default is http://localhost:11434
+                          </p>
+                        </div>
+
+                        <div className="settings-form-group">
+                          <label>Model</label>
+                          {availableOllamaModels.length > 0 ? (
+                            <select
+                              value={ollamaModel}
+                              onChange={(e) => setOllamaModel(e.target.value)}
+                              style={{
+                                width: '100%',
+                                padding: '0.625rem 0.75rem',
+                                border: '1px solid var(--border)',
+                                borderRadius: '0.375rem',
+                                background: 'var(--background)',
+                                color: 'var(--text)',
+                                fontSize: '0.875rem'
+                              }}
+                            >
+                              <option value="">Select a model...</option>
+                              {availableOllamaModels.map((model) => (
+                                <option key={model} value={model}>{model}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={ollamaModel}
+                              onChange={(e) => setOllamaModel(e.target.value)}
+                              placeholder={aiSettings?.ollama_model || 'llama3.2, mistral, etc.'}
+                            />
+                          )}
+                          <p className="hint">
+                            {availableOllamaModels.length > 0
+                              ? 'Select from available models or test connection to refresh list'
+                              : 'Enter model name or test connection to see available models'
+                            }
+                            {aiSettings?.ollama_configured && ` (currently: ${aiSettings.ollama_model})`}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -1221,7 +1322,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              {aiSettings?.ai_enabled && (aiSettings.anthropic_configured || aiSettings.openai_configured) && (
+              {aiSettings?.ai_enabled && (aiSettings.anthropic_configured || aiSettings.openai_configured || aiSettings.ollama_configured) && (
                 <div className="settings-section">
                   <div className="settings-section-header">
                     <span className="settings-section-icon">🧪</span>

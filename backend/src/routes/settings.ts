@@ -202,6 +202,9 @@ router.get('/ai', async (req: AuthRequest, res: Response) => {
       ai_provider: settings.ai_provider || null,
       anthropic_configured: !!settings.anthropic_api_key,
       openai_configured: !!settings.openai_api_key,
+      ollama_configured: !!(settings.ollama_base_url && settings.ollama_model),
+      ollama_base_url: settings.ollama_base_url || null,
+      ollama_model: settings.ollama_model || null,
     });
   } catch (error) {
     console.error('Error fetching AI settings:', error);
@@ -213,13 +216,15 @@ router.get('/ai', async (req: AuthRequest, res: Response) => {
 router.put('/ai', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { ai_enabled, ai_provider, anthropic_api_key, openai_api_key } = req.body;
+    const { ai_enabled, ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model } = req.body;
 
     const settings = await userQueries.updateAISettings(userId, {
       ai_enabled,
       ai_provider,
       anthropic_api_key,
       openai_api_key,
+      ollama_base_url,
+      ollama_model,
     });
 
     if (!settings) {
@@ -232,6 +237,9 @@ router.put('/ai', async (req: AuthRequest, res: Response) => {
       ai_provider: settings.ai_provider || null,
       anthropic_configured: !!settings.anthropic_api_key,
       openai_configured: !!settings.openai_api_key,
+      ollama_configured: !!(settings.ollama_base_url && settings.ollama_model),
+      ollama_base_url: settings.ollama_base_url || null,
+      ollama_model: settings.ollama_model || null,
       message: 'AI settings updated successfully',
     });
   } catch (error) {
@@ -272,6 +280,48 @@ router.post('/ai/test', async (req: AuthRequest, res: Response) => {
     console.error('Error testing AI extraction:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     res.status(500).json({ error: `Failed to test AI extraction: ${errorMessage}` });
+  }
+});
+
+// Test Ollama connection and list available models
+router.post('/ai/test-ollama', async (req: AuthRequest, res: Response) => {
+  try {
+    const { base_url } = req.body;
+
+    if (!base_url) {
+      res.status(400).json({ error: 'Base URL is required' });
+      return;
+    }
+
+    // Try to fetch list of models from Ollama
+    const axios = (await import('axios')).default;
+    const response = await axios.get(`${base_url}/api/tags`, {
+      timeout: 10000,
+    });
+
+    const models = response.data?.models || [];
+    const modelNames = models.map((m: { name: string }) => m.name);
+
+    res.json({
+      success: true,
+      message: 'Successfully connected to Ollama',
+      models: modelNames,
+    });
+  } catch (error) {
+    console.error('Error testing Ollama connection:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (errorMessage.includes('ECONNREFUSED')) {
+      res.status(400).json({
+        error: 'Cannot connect to Ollama. Make sure Ollama is running.',
+        success: false,
+      });
+    } else {
+      res.status(500).json({
+        error: `Failed to connect to Ollama: ${errorMessage}`,
+        success: false,
+      });
+    }
   }
 });
 

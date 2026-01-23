@@ -46,6 +46,12 @@ async function runMigrations() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'pushover_enabled') THEN
           ALTER TABLE users ADD COLUMN pushover_enabled BOOLEAN DEFAULT true;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ollama_base_url') THEN
+          ALTER TABLE users ADD COLUMN ollama_base_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ollama_model') THEN
+          ALTER TABLE users ADD COLUMN ollama_model TEXT;
+        END IF;
       END $$;
     `);
 

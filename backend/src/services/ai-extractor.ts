@@ -144,6 +144,42 @@ async function extractWithOpenAI(
   return parseAIResponse(content);
 }
 
+async function extractWithOllama(
+  html: string,
+  baseUrl: string,
+  model: string
+): Promise<AIExtractionResult> {
+  const preparedHtml = prepareHtmlForAI(html);
+
+  // Ollama uses a chat completions API similar to OpenAI
+  const response = await axios.post(
+    `${baseUrl}/api/chat`,
+    {
+      model: model,
+      messages: [
+        {
+          role: 'user',
+          content: EXTRACTION_PROMPT + preparedHtml,
+        },
+      ],
+      stream: false,
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 120000, // Longer timeout for local models
+    }
+  );
+
+  const content = response.data?.message?.content;
+  if (!content) {
+    throw new Error('No response from Ollama');
+  }
+
+  return parseAIResponse(content);
+}
+
 function parseAIResponse(responseText: string): AIExtractionResult {
   console.log(`[AI] Raw response: ${responseText.substring(0, 500)}...`);
 
@@ -231,6 +267,8 @@ export async function extractWithAI(
     return extractWithAnthropic(html, settings.anthropic_api_key);
   } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
     return extractWithOpenAI(html, settings.openai_api_key);
+  } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
+    return extractWithOllama(html, settings.ollama_base_url, settings.ollama_model);
   }
 
   throw new Error('No valid AI provider configured');
@@ -258,6 +296,9 @@ export async function tryAIExtraction(
     } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
       console.log(`[AI] Using OpenAI for ${url}`);
       return await extractWithOpenAI(html, settings.openai_api_key);
+    } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
+      console.log(`[AI] Using Ollama (${settings.ollama_model}) for ${url}`);
+      return await extractWithOllama(html, settings.ollama_base_url, settings.ollama_model);
     }
 
     return null;
