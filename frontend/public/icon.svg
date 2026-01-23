@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="ghostGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#ghostGrad)"/>
+  <!-- Ghost body -->
+  <path d="M256 100c-70.7 0-128 57.3-128 128v120c0 8 6 14 12 14 8 0 14-8 14-20v-30c0-8 8-14 16-14s16 6 16 14v30c0 12 6 20 14 20s14-8 14-20v-30c0-8 8-14 16-14s16 6 16 14v30c0 12 6 20 14 20s14-8 14-20v-30c0-8 8-14 16-14s16 6 16 14v30c0 12 6 20 14 20 6 0 12-6 12-14V228c0-70.7-57.3-128-128-128z" fill="white" opacity="0.95"/>
+  <!-- Left eye -->
+  <ellipse cx="210" cy="220" rx="20" ry="24" fill="#6366f1"/>
+  <!-- Right eye -->
+  <ellipse cx="302" cy="220" rx="20" ry="24" fill="#6366f1"/>
+  <!-- Price tag -->
+  <g transform="translate(320, 120) rotate(15)">
+    <rect x="0" y="0" width="60" height="40" rx="6" fill="#10b981"/>
+    <text x="30" y="28" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="22" font-weight="bold">$</text>
+  </g>
+</svg>
