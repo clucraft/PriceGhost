@@ -13,6 +13,45 @@
 
 ---
 
+## You Choose the Price. Always.
+
+**Unlike other price trackers that silently pick a price and hope it's right**, PriceGhost uses a multi-strategy extraction system with a unique **Price Voting Modal** that puts you in control.
+
+### How It Works
+
+When you add a product, PriceGhost runs **four independent extraction methods** in parallel:
+
+| Method | How It Works | Reliability |
+|--------|--------------|-------------|
+| **JSON-LD** | Reads schema.org structured data embedded by the retailer | Highest |
+| **Site-Specific** | Custom-tuned scrapers for major retailers (Amazon, Best Buy, Walmart, etc.) | High |
+| **Generic CSS** | Intelligent CSS selectors that find price patterns | Medium |
+| **AI Analysis** | Claude/GPT/Ollama analyzes the page context | High |
+
+Each method "votes" on what it thinks the price is. If they agree, you're good to go. If they disagree, **you see all the candidates and make the final call**.
+
+### The Price Selection Modal
+
+<p align="center">
+  <em>Multiple prices found? No problem. You decide which one is correct.</em>
+</p>
+
+The modal shows you:
+- **Every price candidate** found by each extraction method
+- **Confidence scores** so you know which ones are most reliable
+- **Context** explaining where each price was found (e.g., "Structured Data", "Site Scraper", "AI Extraction")
+- **The product image and name** so you can verify you're tracking the right item
+
+This means:
+- No more accidentally tracking a "Save $200" discount amount instead of the actual price
+- No more confusion between monthly payment plans ($49/mo) and the real price ($1,999)
+- No more tracking bundle prices when you wanted the single item
+- **You always know exactly what price you're tracking**
+
+This feature doesn't exist in Keepa, CamelCamelCamel, Honey, or any other price tracker we've seen. They guess. You choose.
+
+---
+
 ## Built by AI. Built Right.
 
 This entire application was developed collaboratively with [Claude](https://claude.ai) (Anthropic's AI assistant) using [Claude Code](https://claude.ai/claude-code). Every feature, from database migrations to responsive UI components, was crafted through iterative conversation and careful code generation.
@@ -40,6 +79,9 @@ When standard scraping fails to find a price, AI extraction kicks in as a fallba
 ### AI Verification (Recommended)
 Verifies every scraped price to ensure accuracy. This catches issues like accidentally scraping a "savings" amount ($189.99 off) instead of the actual product price ($675.59).
 
+### AI Arbitration
+When multiple extraction methods disagree, AI can analyze all candidates and recommend the correct one - which you can then confirm or override in the Price Selection Modal.
+
 **To enable:**
 1. Get an API key from [Anthropic](https://console.anthropic.com) (Claude), [OpenAI](https://platform.openai.com), or install [Ollama](https://ollama.ai) locally (free)
 2. Go to Settings > AI Extraction
@@ -52,12 +94,17 @@ The cost is minimal (fractions of a cent per API call with Claude Haiku/GPT-4o-m
 
 ## Features
 
+### Multi-Strategy Price Extraction
+- **4 extraction methods** - JSON-LD, site-specific scrapers, generic CSS, and AI work together
+- **Price voting system** - Methods vote on the correct price; consensus = automatic, disagreement = you choose
+- **Price Selection Modal** - See all price candidates with confidence scores and context
+- **AI arbitration** - When methods disagree, AI helps recommend the right price
+- **Headless browser support** - Puppeteer with stealth mode for JavaScript-heavy sites (Best Buy, Target, Walmart, etc.)
+
 ### Price Tracking
 - **Universal scraping** - Works with virtually any e-commerce website
-- **Smart price detection** - Uses multiple strategies: JSON-LD structured data, meta tags, CSS selectors, and pattern matching
 - **AI-powered fallback** - Optional Claude, GPT, or Ollama (local) integration for difficult-to-scrape sites
-- **AI price verification** - Verify scraped prices with AI to catch extraction errors (e.g., scraping savings amounts instead of actual prices)
-- **Headless browser support** - Puppeteer with stealth mode for JavaScript-rendered pages
+- **AI price verification** - Verify scraped prices with AI to catch extraction errors
 - **Price history charts** - Interactive visualization with customizable date ranges (7d, 30d, 90d, all time)
 - **7-day sparklines** - Quick price trend overview on the dashboard
 - **Configurable check intervals** - From 5 minutes to 24 hours per product
@@ -94,6 +141,25 @@ The cost is minimal (fractions of a cent per API call with Claude Haiku/GPT-4o-m
 - **Admin panel** - Manage users, create accounts, toggle admin privileges
 - **Registration control** - Enable/disable public registration
 - **Profile management** - Update display name and change password
+
+## Supported Retailers
+
+PriceGhost has **site-specific scrapers** optimized for:
+
+| Retailer | Browser Rendering | Notes |
+|----------|-------------------|-------|
+| Amazon (.com, .co.uk, .de, etc.) | No | Full support including deal prices |
+| Best Buy | Yes | Filters out financing/payment plans |
+| Walmart | Yes | Reads __NEXT_DATA__ for prices |
+| Target | Yes | Full support |
+| Costco | Yes | Full support |
+| eBay | No | Auction and Buy It Now prices |
+| Newegg | No | Handles combo deals correctly |
+| Home Depot | No | Full support |
+| AliExpress | No | Full support |
+| Magento 2 stores | No | Any store using Magento 2 |
+
+**Any other site** works via generic extraction + AI fallback.
 
 ## Tech Stack
 
@@ -280,7 +346,7 @@ PriceGhost/
 ├── frontend/
 │   └── src/
 │       ├── api/            # Axios client
-│       ├── components/     # Reusable components
+│       ├── components/     # Reusable components (including PriceSelectionModal)
 │       ├── context/        # Auth & Toast contexts
 │       ├── hooks/          # Custom hooks
 │       └── pages/          # Page components
