@@ -525,6 +525,12 @@ export default function Settings() {
         .settings-sidebar {
           width: 220px;
           flex-shrink: 0;
+          display: flex;
+          flex-direction: column;
+          position: sticky;
+          top: 80px;
+          align-self: flex-start;
+          max-height: calc(100vh - 100px);
         }
 
         .settings-nav {
@@ -532,8 +538,6 @@ export default function Settings() {
           border-radius: 0.75rem;
           box-shadow: var(--shadow);
           overflow: hidden;
-          position: sticky;
-          top: 80px;
         }
 
         .settings-nav-item {
@@ -916,6 +920,41 @@ export default function Settings() {
               </button>
             )}
           </nav>
+
+          {/* Version Info */}
+          {versionInfo && (
+            <div style={{
+              marginTop: 'auto',
+              paddingTop: '1.5rem',
+              borderTop: '1px solid var(--border)',
+              color: 'var(--text-muted)',
+              fontSize: '0.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+            }}>
+              <span>PriceGhost v{versionInfo.version}</span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <a
+                  href="https://github.com/clucraft/PriceGhost/blob/main/CHANGELOG.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--primary)', textDecoration: 'none' }}
+                >
+                  Changelog
+                </a>
+                <span>•</span>
+                <a
+                  href="https://github.com/clucraft/PriceGhost"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--primary)', textDecoration: 'none' }}
+                >
+                  GitHub
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="settings-content">
@@ -1709,38 +1748,6 @@ export default function Settings() {
             </>
           )}
         </div>
-
-        {/* Version Info */}
-        {versionInfo && (
-          <div style={{
-            marginTop: '2rem',
-            paddingTop: '1rem',
-            borderTop: '1px solid var(--border)',
-            textAlign: 'center',
-            color: 'var(--text-muted)',
-            fontSize: '0.75rem',
-          }}>
-            <span>PriceGhost v{versionInfo.version}</span>
-            <span style={{ margin: '0 0.5rem' }}>•</span>
-            <a
-              href="https://github.com/clucraft/PriceGhost/blob/main/CHANGELOG.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--primary)', textDecoration: 'none' }}
-            >
-              Changelog
-            </a>
-            <span style={{ margin: '0 0.5rem' }}>•</span>
-            <a
-              href="https://github.com/clucraft/PriceGhost"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--primary)', textDecoration: 'none' }}
-            >
-              GitHub
-            </a>
-          </div>
-        )}
       </div>
     </Layout>
   );
