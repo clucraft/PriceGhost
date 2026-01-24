@@ -591,25 +591,35 @@ const siteScrapers: SiteScraper[] = [
         '.priceView-customer-price span',
         '.priceView-hero-price span',
         '[class*="customerPrice"]',
+        '[class*="priceView"] span[aria-hidden="true"]',
+        '.pricing-price__regular-price',
+        '[data-testid="product-price"]',
+        '.price-box span',
       ];
 
       let price: ParsedPrice | null = null;
       for (const selector of priceSelectors) {
         const elements = $(selector);
+        console.log(`[BestBuy] Selector "${selector}" found ${elements.length} elements`);
         // Check each element, skip payment plan prices (contain "/mo", "per month", etc.)
         elements.each((_, el) => {
           if (price) return false; // Already found a valid price
           const text = $(el).text().trim();
+          if (!text) return true;
+          console.log(`[BestBuy] Found text: "${text.slice(0, 50)}"`);
           const lowerText = text.toLowerCase();
           // Skip if it looks like a monthly payment plan
           if (lowerText.includes('/mo') ||
               lowerText.includes('per month') ||
               lowerText.includes('monthly') ||
-              lowerText.includes('financing')) {
+              lowerText.includes('financing') ||
+              lowerText.includes('payment')) {
+            console.log(`[BestBuy] Skipping payment plan price: "${text.slice(0, 30)}"`);
             return true; // Continue to next element
           }
           const parsed = parsePrice(text);
           if (parsed) {
+            console.log(`[BestBuy] Parsed price: ${parsed.price} ${parsed.currency}`);
             price = parsed;
             return false; // Break the loop
           }
@@ -619,12 +629,17 @@ const siteScrapers: SiteScraper[] = [
 
       const name = $('h1.heading-5').text().trim() ||
                    $('.sku-title h1').text().trim() ||
+                   $('[data-testid="product-title"]').text().trim() ||
+                   $('h1').first().text().trim() ||
                    null;
+      console.log(`[BestBuy] Found name: "${name?.slice(0, 50)}"`);
 
       const imageUrl = $('img.primary-image').attr('src') ||
                        $('[data-testid="image-gallery-image"]').attr('src') ||
+                       $('img[class*="product-image"]').attr('src') ||
                        null;
 
+      console.log(`[BestBuy] Final result - name: ${!!name}, price: ${price ? (price as ParsedPrice).price : null}, image: ${!!imageUrl}`);
       return { name, price, imageUrl };
     },
   },

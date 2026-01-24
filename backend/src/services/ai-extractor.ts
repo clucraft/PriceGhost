@@ -87,12 +87,33 @@ function prepareHtmlForAI(html: string): string {
     if (scriptContent) {
       // Include any JSON-LD that might be product-related
       if (scriptContent.includes('price') ||
+          scriptContent.includes('Price') ||
           scriptContent.includes('Product') ||
           scriptContent.includes('Offer')) {
         jsonLdScripts.push(scriptContent);
       }
     }
   });
+
+  // Extract price-related elements specifically
+  const priceElements: string[] = [];
+  const priceSelectors = [
+    '[class*="price"]',
+    '[class*="Price"]',
+    '[data-testid*="price"]',
+    '[itemprop="price"]',
+    '[data-price]',
+  ];
+
+  for (const selector of priceSelectors) {
+    $(selector).each((_, el) => {
+      const text = $(el).text().trim();
+      const parent = $(el).parent().text().trim().slice(0, 200);
+      if (text && text.match(/\$[\d,]+\.?\d*/)) {
+        priceElements.push(`Price element: "${text}" (context: "${parent.slice(0, 100)}")`);
+      }
+    });
+  }
 
   // Now remove script, style, and other non-content elements
   $('script, style, noscript, iframe, svg, path, meta, link, comment').remove();
@@ -103,9 +124,10 @@ function prepareHtmlForAI(html: string): string {
   // Try to focus on product-related sections if possible
   const productSelectors = [
     '[itemtype*="Product"]',
-    '[class*="product"]',
+    '[class*="product-detail"]',
+    '[class*="productDetail"]',
+    '[class*="pdp-"]',
     '[id*="product"]',
-    '[class*="pdp"]',
     'main',
     '[role="main"]',
   ];
@@ -118,16 +140,24 @@ function prepareHtmlForAI(html: string): string {
     }
   }
 
-  // Combine JSON-LD data with HTML content
-  let finalContent = content;
+  // Build final content with all price-related info at the top
+  let finalContent = '';
+
   if (jsonLdScripts.length > 0) {
-    finalContent = `JSON-LD Structured Data:\n${jsonLdScripts.join('\n')}\n\nHTML Content:\n${content}`;
+    finalContent += `=== JSON-LD Structured Data (MOST RELIABLE) ===\n${jsonLdScripts.join('\n')}\n\n`;
     console.log(`[AI] Found ${jsonLdScripts.length} JSON-LD scripts with product data`);
   }
 
-  // Truncate to ~15000 characters to stay within token limits
-  if (finalContent.length > 15000) {
-    finalContent = finalContent.substring(0, 15000) + '\n... [truncated]';
+  if (priceElements.length > 0) {
+    finalContent += `=== Price Elements Found ===\n${priceElements.slice(0, 10).join('\n')}\n\n`;
+    console.log(`[AI] Found ${priceElements.length} price elements`);
+  }
+
+  finalContent += `=== HTML Content ===\n${content}`;
+
+  // Truncate to ~25000 characters to stay within token limits but capture more content
+  if (finalContent.length > 25000) {
+    finalContent = finalContent.substring(0, 25000) + '\n... [truncated]';
   }
 
   console.log(`[AI] Prepared HTML content: ${finalContent.length} characters`);
