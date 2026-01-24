@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import NotificationBell from './NotificationBell';
+import ParticleBackground from './ParticleBackground';
 
 interface LayoutProps {
   children: ReactNode;
@@ -292,6 +293,8 @@ export default function Layout({ children }: LayoutProps) {
           }
         }
       `}</style>
+
+      <ParticleBackground />
 
       <nav className="navbar">
         <div className="navbar-content">
