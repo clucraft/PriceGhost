@@ -241,6 +241,83 @@ export async function sendNtfyNotification(
   }
 }
 
+export async function sendGotifyNotification(
+  serverUrl: string,
+  appToken: string,
+  payload: NotificationPayload
+): Promise<boolean> {
+  try {
+    const currencySymbol = getCurrencySymbol(payload.currency);
+
+    let title: string;
+    let message: string;
+    let priority: number;
+
+    if (payload.type === 'price_drop') {
+      const oldPriceStr = payload.oldPrice ? `${currencySymbol}${payload.oldPrice.toFixed(2)}` : 'N/A';
+      const newPriceStr = payload.newPrice ? `${currencySymbol}${payload.newPrice.toFixed(2)}` : 'N/A';
+      title = 'Price Drop Alert!';
+      message = `${payload.productName}\n\nPrice dropped from ${oldPriceStr} to ${newPriceStr}\n\n${payload.productUrl}`;
+      priority = 7; // High priority
+    } else if (payload.type === 'target_price') {
+      const newPriceStr = payload.newPrice ? `${currencySymbol}${payload.newPrice.toFixed(2)}` : 'N/A';
+      const targetPriceStr = payload.targetPrice ? `${currencySymbol}${payload.targetPrice.toFixed(2)}` : 'N/A';
+      title = 'Target Price Reached!';
+      message = `${payload.productName}\n\nPrice is now ${newPriceStr} (your target: ${targetPriceStr})\n\n${payload.productUrl}`;
+      priority = 8; // Higher priority
+    } else {
+      const priceStr = payload.newPrice ? ` at ${currencySymbol}${payload.newPrice.toFixed(2)}` : '';
+      title = 'Back in Stock!';
+      message = `${payload.productName}\n\nThis item is now available${priceStr}\n\n${payload.productUrl}`;
+      priority = 8; // Higher priority
+    }
+
+    // Gotify API: POST /message with token as query param or header
+    const url = `${serverUrl.replace(/\/$/, '')}/message`;
+    await axios.post(url, {
+      title,
+      message,
+      priority,
+    }, {
+      headers: {
+        'X-Gotify-Key': appToken,
+      },
+    });
+
+    console.log('Gotify notification sent');
+    return true;
+  } catch (error) {
+    console.error('Failed to send Gotify notification:', error);
+    return false;
+  }
+}
+
+export async function testGotifyConnection(
+  serverUrl: string,
+  appToken: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Test by fetching application info
+    const url = `${serverUrl.replace(/\/$/, '')}/application`;
+    await axios.get(url, {
+      headers: {
+        'X-Gotify-Key': appToken,
+      },
+      timeout: 10000,
+    });
+    return { success: true };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('ECONNREFUSED')) {
+      return { success: false, error: 'Cannot connect to Gotify server. Make sure it is running.' };
+    }
+    if (errorMessage.includes('401') || errorMessage.includes('403')) {
+      return { success: false, error: 'Invalid app token. Check your Gotify application token.' };
+    }
+    return { success: false, error: `Connection failed: ${errorMessage}` };
+  }
+}
+
 export interface NotificationResult {
   channelsNotified: string[];
   channelsFailed: string[];
@@ -258,6 +335,9 @@ export async function sendNotifications(
     pushover_enabled?: boolean;
     ntfy_topic: string | null;
     ntfy_enabled?: boolean;
+    gotify_url: string | null;
+    gotify_app_token: string | null;
+    gotify_enabled?: boolean;
   },
   payload: NotificationPayload
 ): Promise<NotificationResult> {
@@ -289,6 +369,13 @@ export async function sendNotifications(
     channelPromises.push({
       channel: 'ntfy',
       promise: sendNtfyNotification(settings.ntfy_topic, payload),
+    });
+  }
+
+  if (settings.gotify_url && settings.gotify_app_token && settings.gotify_enabled !== false) {
+    channelPromises.push({
+      channel: 'gotify',
+      promise: sendGotifyNotification(settings.gotify_url, settings.gotify_app_token, payload),
     });
   }
 

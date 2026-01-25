@@ -191,6 +191,9 @@ export interface NotificationSettings {
   pushover_enabled: boolean;
   ntfy_topic: string | null;
   ntfy_enabled: boolean;
+  gotify_url: string | null;
+  gotify_app_token: string | null;
+  gotify_enabled: boolean;
 }
 
 export const settingsApi = {
@@ -208,6 +211,9 @@ export const settingsApi = {
     pushover_enabled?: boolean;
     ntfy_topic?: string | null;
     ntfy_enabled?: boolean;
+    gotify_url?: string | null;
+    gotify_app_token?: string | null;
+    gotify_enabled?: boolean;
   }) => api.put<NotificationSettings & { message: string }>('/settings/notifications', data),
 
   testTelegram: () =>
@@ -221,6 +227,15 @@ export const settingsApi = {
 
   testNtfy: () =>
     api.post<{ message: string }>('/settings/notifications/test/ntfy'),
+
+  testGotifyConnection: (url: string, appToken: string) =>
+    api.post<{ success: boolean; message?: string; error?: string }>('/settings/notifications/test-gotify', {
+      url,
+      app_token: appToken,
+    }),
+
+  testGotify: () =>
+    api.post<{ message: string }>('/settings/notifications/test/gotify'),
 
   // AI Settings
   getAI: () =>

@@ -47,8 +47,12 @@ export default function Settings() {
   const [pushoverEnabled, setPushoverEnabled] = useState(true);
   const [ntfyTopic, setNtfyTopic] = useState('');
   const [ntfyEnabled, setNtfyEnabled] = useState(true);
+  const [gotifyUrl, setGotifyUrl] = useState('');
+  const [gotifyAppToken, setGotifyAppToken] = useState('');
+  const [gotifyEnabled, setGotifyEnabled] = useState(true);
+  const [isTestingGotify, setIsTestingGotify] = useState(false);
   const [isSavingNotifications, setIsSavingNotifications] = useState(false);
-  const [isTesting, setIsTesting] = useState<'telegram' | 'discord' | 'pushover' | 'ntfy' | null>(null);
+  const [isTesting, setIsTesting] = useState<'telegram' | 'discord' | 'pushover' | 'ntfy' | 'gotify' | null>(null);
 
   // AI state
   const [aiSettings, setAISettings] = useState<AISettings | null>(null);
@@ -108,6 +112,9 @@ export default function Settings() {
       setPushoverEnabled(notificationsRes.data.pushover_enabled ?? true);
       setNtfyTopic(notificationsRes.data.ntfy_topic || '');
       setNtfyEnabled(notificationsRes.data.ntfy_enabled ?? true);
+      setGotifyUrl(notificationsRes.data.gotify_url || '');
+      setGotifyAppToken(notificationsRes.data.gotify_app_token || '');
+      setGotifyEnabled(notificationsRes.data.gotify_enabled ?? true);
       // Populate AI fields with actual values
       setAISettings(aiRes.data);
       setAIEnabled(aiRes.data.ai_enabled);
@@ -360,6 +367,69 @@ export default function Settings() {
     } catch {
       setNtfyEnabled(!enabled);
       setError('Failed to update ntfy status');
+    }
+  };
+
+  const handleTestGotifyConnection = async () => {
+    clearMessages();
+    if (!gotifyUrl || !gotifyAppToken) {
+      setError('Please enter both the Gotify server URL and app token');
+      return;
+    }
+    setIsTestingGotify(true);
+    try {
+      const response = await settingsApi.testGotifyConnection(gotifyUrl, gotifyAppToken);
+      if (response.data.success) {
+        setSuccess('Successfully connected to Gotify server!');
+      } else {
+        setError(response.data.error || 'Failed to connect to Gotify');
+      }
+    } catch {
+      setError('Failed to connect to Gotify. Make sure the server is running.');
+    } finally {
+      setIsTestingGotify(false);
+    }
+  };
+
+  const handleSaveGotify = async () => {
+    clearMessages();
+    setIsSavingNotifications(true);
+    try {
+      const response = await settingsApi.updateNotifications({
+        gotify_url: gotifyUrl || null,
+        gotify_app_token: gotifyAppToken || null,
+      });
+      setNotificationSettings(response.data);
+      setGotifyAppToken('');
+      setSuccess('Gotify settings saved successfully');
+    } catch {
+      setError('Failed to save Gotify settings');
+    } finally {
+      setIsSavingNotifications(false);
+    }
+  };
+
+  const handleTestGotify = async () => {
+    clearMessages();
+    setIsTesting('gotify');
+    try {
+      await settingsApi.testGotify();
+      setSuccess('Test notification sent to Gotify!');
+    } catch {
+      setError('Failed to send test notification');
+    } finally {
+      setIsTesting(null);
+    }
+  };
+
+  const handleToggleGotify = async (enabled: boolean) => {
+    setGotifyEnabled(enabled);
+    try {
+      const response = await settingsApi.updateNotifications({ gotify_enabled: enabled });
+      setNotificationSettings(response.data);
+    } catch {
+      setGotifyEnabled(!enabled);
+      setError('Failed to update Gotify status');
     }
   };
 
@@ -1314,6 +1384,88 @@ export default function Settings() {
                       disabled={isTesting === 'ntfy'}
                     >
                       {isTesting === 'ntfy' ? 'Sending...' : 'Send Test'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="settings-section">
+                <div className="settings-section-header">
+                  <span className="settings-section-icon">🔔</span>
+                  <h2 className="settings-section-title">Gotify Notifications</h2>
+                  <span className={`settings-section-status ${notificationSettings?.gotify_url && notificationSettings?.gotify_app_token ? 'configured' : 'not-configured'}`}>
+                    {notificationSettings?.gotify_url && notificationSettings?.gotify_app_token ? 'Configured' : 'Not configured'}
+                  </span>
+                </div>
+                <p className="settings-section-description">
+                  Receive notifications via your self-hosted Gotify server. You'll need to create an application
+                  in Gotify to get an app token.
+                </p>
+
+                {notificationSettings?.gotify_url && notificationSettings?.gotify_app_token && (
+                  <div className="settings-toggle">
+                    <div className="settings-toggle-label">
+                      <span className="settings-toggle-title">Enable Gotify Notifications</span>
+                      <span className="settings-toggle-description">
+                        Toggle to enable or disable Gotify alerts
+                      </span>
+                    </div>
+                    <button
+                      className={`toggle-switch ${gotifyEnabled ? 'active' : ''}`}
+                      onClick={() => handleToggleGotify(!gotifyEnabled)}
+                    />
+                  </div>
+                )}
+
+                <div className="settings-form-group">
+                  <label>Server URL</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={gotifyUrl}
+                      onChange={(e) => setGotifyUrl(e.target.value)}
+                      placeholder="https://gotify.example.com"
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleTestGotifyConnection}
+                      disabled={isTestingGotify || !gotifyUrl || !gotifyAppToken}
+                      style={{ whiteSpace: 'nowrap' }}
+                    >
+                      {isTestingGotify ? 'Testing...' : 'Test Connection'}
+                    </button>
+                  </div>
+                  <p className="hint">The URL of your self-hosted Gotify server</p>
+                </div>
+
+                <div className="settings-form-group">
+                  <label>App Token</label>
+                  <PasswordInput
+                    value={gotifyAppToken}
+                    onChange={(e) => setGotifyAppToken(e.target.value)}
+                    placeholder="Enter your app token"
+                  />
+                  <p className="hint">
+                    Create an application in Gotify (Apps → Create Application) to get a token
+                  </p>
+                </div>
+
+                <div className="settings-form-actions">
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleSaveGotify}
+                    disabled={isSavingNotifications}
+                  >
+                    {isSavingNotifications ? 'Saving...' : 'Save Gotify Settings'}
+                  </button>
+                  {notificationSettings?.gotify_url && notificationSettings?.gotify_app_token && (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={handleTestGotify}
+                      disabled={isTesting === 'gotify'}
+                    >
+                      {isTesting === 'gotify' ? 'Sending...' : 'Send Test'}
                     </button>
                   )}
                 </div>

@@ -32,6 +32,9 @@ export interface NotificationSettings {
   pushover_enabled: boolean;
   ntfy_topic: string | null;
   ntfy_enabled: boolean;
+  gotify_url: string | null;
+  gotify_app_token: string | null;
+  gotify_enabled: boolean;
 }
 
 export interface AISettings {
@@ -76,7 +79,8 @@ export const userQueries = {
       `SELECT telegram_bot_token, telegram_chat_id, COALESCE(telegram_enabled, true) as telegram_enabled,
               discord_webhook_url, COALESCE(discord_enabled, true) as discord_enabled,
               pushover_user_key, pushover_app_token, COALESCE(pushover_enabled, true) as pushover_enabled,
-              ntfy_topic, COALESCE(ntfy_enabled, true) as ntfy_enabled
+              ntfy_topic, COALESCE(ntfy_enabled, true) as ntfy_enabled,
+              gotify_url, gotify_app_token, COALESCE(gotify_enabled, true) as gotify_enabled
        FROM users WHERE id = $1`,
       [id]
     );
@@ -131,6 +135,18 @@ export const userQueries = {
       fields.push(`ntfy_enabled = $${paramIndex++}`);
       values.push(settings.ntfy_enabled);
     }
+    if (settings.gotify_url !== undefined) {
+      fields.push(`gotify_url = $${paramIndex++}`);
+      values.push(settings.gotify_url);
+    }
+    if (settings.gotify_app_token !== undefined) {
+      fields.push(`gotify_app_token = $${paramIndex++}`);
+      values.push(settings.gotify_app_token);
+    }
+    if (settings.gotify_enabled !== undefined) {
+      fields.push(`gotify_enabled = $${paramIndex++}`);
+      values.push(settings.gotify_enabled);
+    }
 
     if (fields.length === 0) return null;
 
@@ -140,7 +156,8 @@ export const userQueries = {
        RETURNING telegram_bot_token, telegram_chat_id, COALESCE(telegram_enabled, true) as telegram_enabled,
                  discord_webhook_url, COALESCE(discord_enabled, true) as discord_enabled,
                  pushover_user_key, pushover_app_token, COALESCE(pushover_enabled, true) as pushover_enabled,
-                 ntfy_topic, COALESCE(ntfy_enabled, true) as ntfy_enabled`,
+                 ntfy_topic, COALESCE(ntfy_enabled, true) as ntfy_enabled,
+                 gotify_url, gotify_app_token, COALESCE(gotify_enabled, true) as gotify_enabled`,
       values
     );
     return result.rows[0] || null;

@@ -29,6 +29,9 @@ router.get('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_enabled: settings.pushover_enabled ?? true,
       ntfy_topic: settings.ntfy_topic || null,
       ntfy_enabled: settings.ntfy_enabled ?? true,
+      gotify_url: settings.gotify_url || null,
+      gotify_app_token: settings.gotify_app_token || null,
+      gotify_enabled: settings.gotify_enabled ?? true,
     });
   } catch (error) {
     console.error('Error fetching notification settings:', error);
@@ -51,6 +54,9 @@ router.put('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_enabled,
       ntfy_topic,
       ntfy_enabled,
+      gotify_url,
+      gotify_app_token,
+      gotify_enabled,
     } = req.body;
 
     const settings = await userQueries.updateNotificationSettings(userId, {
@@ -64,6 +70,9 @@ router.put('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_enabled,
       ntfy_topic,
       ntfy_enabled,
+      gotify_url,
+      gotify_app_token,
+      gotify_enabled,
     });
 
     if (!settings) {
@@ -82,6 +91,9 @@ router.put('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_enabled: settings.pushover_enabled ?? true,
       ntfy_topic: settings.ntfy_topic || null,
       ntfy_enabled: settings.ntfy_enabled ?? true,
+      gotify_url: settings.gotify_url || null,
+      gotify_app_token: settings.gotify_app_token || null,
+      gotify_enabled: settings.gotify_enabled ?? true,
       message: 'Notification settings updated successfully',
     });
   } catch (error) {
@@ -222,6 +234,66 @@ router.post('/notifications/test/ntfy', async (req: AuthRequest, res: Response) 
     }
   } catch (error) {
     console.error('Error sending test ntfy notification:', error);
+    res.status(500).json({ error: 'Failed to send test notification' });
+  }
+});
+
+// Test Gotify connection (before saving)
+router.post('/notifications/test-gotify', async (req: AuthRequest, res: Response) => {
+  try {
+    const { url, app_token } = req.body;
+
+    if (!url || !app_token) {
+      res.status(400).json({ error: 'Server URL and app token are required' });
+      return;
+    }
+
+    const { testGotifyConnection } = await import('../services/notifications');
+    const result = await testGotifyConnection(url, app_token);
+
+    if (result.success) {
+      res.json({ success: true, message: 'Successfully connected to Gotify server' });
+    } else {
+      res.status(400).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('Error testing Gotify connection:', error);
+    res.status(500).json({ error: 'Failed to test Gotify connection' });
+  }
+});
+
+// Test Gotify notification (after saving)
+router.post('/notifications/test/gotify', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const settings = await userQueries.getNotificationSettings(userId);
+
+    if (!settings?.gotify_url || !settings?.gotify_app_token) {
+      res.status(400).json({ error: 'Gotify not configured' });
+      return;
+    }
+
+    const { sendGotifyNotification } = await import('../services/notifications');
+    const success = await sendGotifyNotification(
+      settings.gotify_url,
+      settings.gotify_app_token,
+      {
+        productName: 'Test Product',
+        productUrl: 'https://example.com',
+        type: 'price_drop',
+        oldPrice: 29.99,
+        newPrice: 19.99,
+        currency: 'USD',
+      }
+    );
+
+    if (success) {
+      res.json({ message: 'Test notification sent successfully' });
+    } else {
+      res.status(500).json({ error: 'Failed to send test notification' });
+    }
+  } catch (error) {
+    console.error('Error sending test Gotify notification:', error);
     res.status(500).json({ error: 'Failed to send test notification' });
   }
 });
