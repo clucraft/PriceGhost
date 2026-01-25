@@ -1429,47 +1429,44 @@ export async function scrapeProductWithVoting(
     // Store all candidates
     result.priceCandidates = allCandidates;
 
-    // If user has a preferred method, try to use it
-    if (preferredMethod && allCandidates.length > 0) {
-      const preferredCandidates = allCandidates.filter(c => c.method === preferredMethod);
-      if (preferredCandidates.length > 0) {
-        let selectedCandidate = preferredCandidates[0];
-
-        // If we have an anchor price and multiple candidates from preferred method,
-        // select the one closest to the anchor price (handles variant products)
-        if (anchorPrice && preferredCandidates.length > 1) {
-          selectedCandidate = preferredCandidates.reduce((closest, candidate) => {
-            const closestDiff = Math.abs(closest.price - anchorPrice);
-            const candidateDiff = Math.abs(candidate.price - anchorPrice);
-            return candidateDiff < closestDiff ? candidate : closest;
-          });
-          console.log(`[Voting] Using anchor price ${anchorPrice} to select from ${preferredCandidates.length} candidates: ${selectedCandidate.price}`);
-        }
-
-        console.log(`[Voting] Using preferred method ${preferredMethod}: ${selectedCandidate.price}`);
-        result.price = { price: selectedCandidate.price, currency: selectedCandidate.currency };
-        result.selectedMethod = preferredMethod;
-        return result;
-      }
-    }
-
-    // If we have an anchor price but no preferred method, find closest candidate overall
+    // PRIORITY 1: If we have an anchor price, it takes precedence (user confirmed this price)
+    // This handles variant products where multiple prices exist on the page
     if (anchorPrice && allCandidates.length > 0) {
+      console.log(`[Voting] Have anchor price ${anchorPrice}, searching ${allCandidates.length} candidates...`);
+
+      // Find the candidate closest to the anchor price
       const closestCandidate = allCandidates.reduce((closest, candidate) => {
         const closestDiff = Math.abs(closest.price - anchorPrice);
         const candidateDiff = Math.abs(candidate.price - anchorPrice);
         return candidateDiff < closestDiff ? candidate : closest;
       });
 
-      // Only use anchor matching if the difference is reasonable (within 20%)
       const priceDiff = Math.abs(closestCandidate.price - anchorPrice) / anchorPrice;
-      if (priceDiff < 0.20) {
-        console.log(`[Voting] Using anchor price ${anchorPrice} to select: ${closestCandidate.price} (${(priceDiff * 100).toFixed(1)}% diff)`);
+
+      // Use anchor matching if within 10% (tight tolerance for variants)
+      // or if it's an exact match
+      if (closestCandidate.price === anchorPrice || priceDiff < 0.10) {
+        console.log(`[Voting] Found match for anchor price ${anchorPrice}: ${closestCandidate.price} via ${closestCandidate.method} (${(priceDiff * 100).toFixed(1)}% diff)`);
         result.price = { price: closestCandidate.price, currency: closestCandidate.currency };
         result.selectedMethod = closestCandidate.method;
         return result;
       } else {
-        console.log(`[Voting] Anchor price ${anchorPrice} too different from candidates (closest: ${closestCandidate.price}, ${(priceDiff * 100).toFixed(1)}% diff), using consensus`);
+        // No close match - price may have legitimately changed
+        console.log(`[Voting] No candidate close to anchor price ${anchorPrice} (closest: ${closestCandidate.price}, ${(priceDiff * 100).toFixed(1)}% diff)`);
+        // Fall through to preferred method or consensus
+      }
+    }
+
+    // PRIORITY 2: If user has a preferred method and no anchor match, try that method
+    if (preferredMethod && allCandidates.length > 0) {
+      const preferredCandidates = allCandidates.filter(c => c.method === preferredMethod);
+      if (preferredCandidates.length > 0) {
+        // Use highest confidence candidate from preferred method
+        const selectedCandidate = preferredCandidates.sort((a, b) => b.confidence - a.confidence)[0];
+        console.log(`[Voting] Using preferred method ${preferredMethod}: ${selectedCandidate.price}`);
+        result.price = { price: selectedCandidate.price, currency: selectedCandidate.currency };
+        result.selectedMethod = preferredMethod;
+        return result;
       }
     }
 

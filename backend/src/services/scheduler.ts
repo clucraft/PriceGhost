@@ -29,6 +29,8 @@ async function checkPrices(): Promise<void> {
         // Get anchor price for variant products (the price the user confirmed)
         const anchorPrice = await productQueries.getAnchorPrice(product.id);
 
+        console.log(`[Scheduler] Product ${product.id} - preferredMethod: ${preferredMethod}, anchorPrice: ${anchorPrice}`);
+
         // Use voting scraper with preferred method and anchor price if available
         const scrapedData = await scrapeProductWithVoting(
           product.url,
@@ -36,6 +38,8 @@ async function checkPrices(): Promise<void> {
           preferredMethod as ExtractionMethod | undefined,
           anchorPrice || undefined
         );
+
+        console.log(`[Scheduler] Product ${product.id} - scraped price: ${scrapedData.price?.price}, candidates: ${scrapedData.priceCandidates.map(c => `${c.price}(${c.method})`).join(', ')}`);
 
         // Check for back-in-stock notification
         const wasOutOfStock = product.stock_status === 'out_of_stock';

@@ -59,6 +59,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
       // Store the anchor price - used on refresh to select the correct variant
       await productQueries.updateAnchorPrice(product.id, selectedPrice);
+      console.log(`[Products] Saved anchor price ${selectedPrice} for product ${product.id} (method: ${selectedMethod})`);
 
       // Record the user-selected price
       await priceHistoryQueries.create(
