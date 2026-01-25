@@ -29,14 +29,18 @@ async function checkPrices(): Promise<void> {
         // Get anchor price for variant products (the price the user confirmed)
         const anchorPrice = await productQueries.getAnchorPrice(product.id);
 
-        console.log(`[Scheduler] Product ${product.id} - preferredMethod: ${preferredMethod}, anchorPrice: ${anchorPrice}`);
+        // Check if AI verification is disabled for this product
+        const skipAiVerification = await productQueries.isAiVerificationDisabled(product.id);
+
+        console.log(`[Scheduler] Product ${product.id} - preferredMethod: ${preferredMethod}, anchorPrice: ${anchorPrice}, skipAi: ${skipAiVerification}`);
 
         // Use voting scraper with preferred method and anchor price if available
         const scrapedData = await scrapeProductWithVoting(
           product.url,
           product.user_id,
           preferredMethod as ExtractionMethod | undefined,
-          anchorPrice || undefined
+          anchorPrice || undefined,
+          skipAiVerification
         );
 
         console.log(`[Scheduler] Product ${product.id} - scraped price: ${scrapedData.price?.price}, candidates: ${scrapedData.priceCandidates.map(c => `${c.price}(${c.method})`).join(', ')}`);

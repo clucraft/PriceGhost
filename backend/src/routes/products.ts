@@ -219,7 +219,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    const { name, refresh_interval, price_drop_threshold, target_price, notify_back_in_stock } = req.body;
+    const { name, refresh_interval, price_drop_threshold, target_price, notify_back_in_stock, ai_verification_disabled } = req.body;
 
     const product = await productQueries.update(productId, userId, {
       name,
@@ -227,6 +227,7 @@ router.put('/:id', async (req: AuthRequest, res: Response) => {
       price_drop_threshold,
       target_price,
       notify_back_in_stock,
+      ai_verification_disabled,
     });
 
     if (!product) {

@@ -30,6 +30,7 @@ export default function ProductDetail() {
   const [priceDropThreshold, setPriceDropThreshold] = useState<string>('');
   const [targetPrice, setTargetPrice] = useState<string>('');
   const [notifyBackInStock, setNotifyBackInStock] = useState(false);
+  const [aiVerificationDisabled, setAiVerificationDisabled] = useState(false);
 
   const REFRESH_INTERVALS = [
     { value: 300, label: '5 minutes' },
@@ -62,6 +63,7 @@ export default function ProductDetail() {
         setTargetPrice(productRes.data.target_price.toString());
       }
       setNotifyBackInStock(productRes.data.notify_back_in_stock || false);
+      setAiVerificationDisabled(productRes.data.ai_verification_disabled || false);
     } catch {
       setError('Failed to load product details');
     } finally {
@@ -139,12 +141,14 @@ export default function ProductDetail() {
         price_drop_threshold: threshold,
         target_price: target,
         notify_back_in_stock: notifyBackInStock,
+        ai_verification_disabled: aiVerificationDisabled,
       });
       setProduct({
         ...product,
         price_drop_threshold: threshold,
         target_price: target,
         notify_back_in_stock: notifyBackInStock,
+        ai_verification_disabled: aiVerificationDisabled,
       });
       showToast('Notification settings saved');
     } catch {
@@ -763,6 +767,114 @@ export default function ProductDetail() {
           </div>
         </>
       )}
+
+      <style>{`
+        .advanced-settings-card {
+          background: var(--surface);
+          border-radius: 0.75rem;
+          box-shadow: var(--shadow);
+          padding: 1.5rem;
+          margin-top: 2rem;
+        }
+
+        .advanced-settings-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .advanced-settings-icon {
+          font-size: 1.5rem;
+        }
+
+        .advanced-settings-title {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: var(--text);
+        }
+
+        .advanced-settings-description {
+          color: var(--text-muted);
+          font-size: 0.875rem;
+          margin-bottom: 1.5rem;
+          line-height: 1.5;
+        }
+
+        .advanced-checkbox-group {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          background: var(--background);
+          border-radius: 0.375rem;
+          cursor: pointer;
+        }
+
+        .advanced-checkbox-group:hover {
+          background: var(--border);
+        }
+
+        .advanced-checkbox-group input[type="checkbox"] {
+          width: 1.125rem;
+          height: 1.125rem;
+          accent-color: var(--primary);
+          cursor: pointer;
+        }
+
+        .advanced-checkbox-label {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
+        }
+
+        .advanced-checkbox-label span:first-child {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: var(--text);
+        }
+
+        .advanced-checkbox-label span:last-child {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .advanced-settings-actions {
+          margin-top: 1rem;
+        }
+      `}</style>
+
+      <div className="advanced-settings-card">
+        <div className="advanced-settings-header">
+          <span className="advanced-settings-icon">⚙️</span>
+          <h2 className="advanced-settings-title">Advanced Settings</h2>
+        </div>
+        <p className="advanced-settings-description">
+          Fine-tune how price extraction works for this product.
+        </p>
+
+        <label className="advanced-checkbox-group">
+          <input
+            type="checkbox"
+            checked={aiVerificationDisabled}
+            onChange={(e) => setAiVerificationDisabled(e.target.checked)}
+          />
+          <div className="advanced-checkbox-label">
+            <span>Disable AI Verification</span>
+            <span>Prevent AI from "correcting" the scraped price. Useful when AI keeps picking the wrong price (e.g., main price instead of other sellers on Amazon).</span>
+          </div>
+        </label>
+
+        <div className="advanced-settings-actions">
+          <button
+            className="btn btn-primary"
+            onClick={handleSaveNotifications}
+            disabled={isSavingNotifications}
+          >
+            {isSavingNotifications ? 'Saving...' : 'Save Settings'}
+          </button>
+        </div>
+      </div>
     </Layout>
   );
 }

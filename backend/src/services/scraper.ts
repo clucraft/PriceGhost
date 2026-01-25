@@ -1355,12 +1355,14 @@ export async function scrapeProduct(url: string, userId?: number): Promise<Scrap
  *
  * @param anchorPrice - The price the user previously confirmed. Used to select the correct
  *                      variant on refresh when multiple prices are found.
+ * @param skipAiVerification - If true, skip AI verification entirely for this product.
  */
 export async function scrapeProductWithVoting(
   url: string,
   userId?: number,
   preferredMethod?: ExtractionMethod,
-  anchorPrice?: number
+  anchorPrice?: number,
+  skipAiVerification?: boolean
 ): Promise<ScrapedProductWithCandidates> {
   const result: ScrapedProductWithCandidates = {
     name: null,
@@ -1637,10 +1639,12 @@ export async function scrapeProductWithVoting(
     }
 
     // If we have a price but AI is available, verify it
-    // SKIP verification if we have multiple candidates - let user choose from modal instead
+    // SKIP verification if:
+    // - User disabled AI verification for this product
+    // - We have multiple candidates (let user choose from modal instead)
     // This prevents AI from "correcting" valid alternative prices (e.g., other sellers on Amazon)
     const hasMultipleCandidates = allCandidates.length > 1;
-    if (result.price && userId && html && !result.aiStatus && !hasMultipleCandidates) {
+    if (result.price && userId && html && !result.aiStatus && !hasMultipleCandidates && !skipAiVerification) {
       try {
         const { tryAIVerification } = await import('./ai-extractor');
         const verifyResult = await tryAIVerification(

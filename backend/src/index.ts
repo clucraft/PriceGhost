@@ -168,6 +168,10 @@ async function runMigrations() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'anchor_price') THEN
           ALTER TABLE products ADD COLUMN anchor_price DECIMAL(10,2);
         END IF;
+        -- Per-product AI verification disable flag
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'ai_verification_disabled') THEN
+          ALTER TABLE products ADD COLUMN ai_verification_disabled BOOLEAN DEFAULT false;
+        END IF;
       END $$;
     `);
 
