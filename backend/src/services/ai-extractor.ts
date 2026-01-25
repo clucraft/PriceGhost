@@ -6,6 +6,15 @@ import { AISettings } from '../models';
 import { ParsedPrice } from '../utils/priceParser';
 import { StockStatus, PriceCandidate } from './scraper';
 
+// Strip thinking mode tags from model responses (Qwen3, DeepSeek, etc.)
+// These models output <think>...</think> blocks before their actual response
+function stripThinkingTags(text: string): string {
+  // Remove <think>...</think> blocks (including content)
+  const stripped = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  // If nothing left after stripping, return original (in case regex failed)
+  return stripped.length > 0 ? stripped : text;
+}
+
 export interface AIExtractionResult {
   name: string | null;
   price: ParsedPrice | null;
@@ -28,7 +37,8 @@ export interface AIStockStatusResult {
   reason: string;
 }
 
-const VERIFICATION_PROMPT = `You are a price and availability verification assistant. I scraped a product page and found a price. Please verify if this price is correct AND if the product is currently available for purchase.
+const VERIFICATION_PROMPT = `/nothink
+You are a price and availability verification assistant. I scraped a product page and found a price. Please verify if this price is correct AND if the product is currently available for purchase.
 
 Scraped Price: $SCRAPED_PRICE$ $CURRENCY$
 
@@ -64,7 +74,8 @@ Only return valid JSON, no explanation text outside the JSON.
 HTML Content:
 `;
 
-const STOCK_STATUS_PROMPT = `You are an availability verification assistant. The user is tracking a SPECIFIC product variant priced at $VARIANT_PRICE$ $CURRENCY$.
+const STOCK_STATUS_PROMPT = `/nothink
+You are an availability verification assistant. The user is tracking a SPECIFIC product variant priced at $VARIANT_PRICE$ $CURRENCY$.
 
 Your task: Determine if THIS SPECIFIC VARIANT (the one at $VARIANT_PRICE$) is currently in stock and can be purchased.
 
@@ -96,7 +107,8 @@ Only return valid JSON, no explanation text outside the JSON.
 HTML Content:
 `;
 
-const EXTRACTION_PROMPT = `You are a price extraction assistant. Analyze the following HTML content from a product page and extract the product information.
+const EXTRACTION_PROMPT = `/nothink
+You are a price extraction assistant. Analyze the following HTML content from a product page and extract the product information.
 
 Return a JSON object with these fields:
 - name: The product name/title (string or null)
@@ -495,8 +507,8 @@ function parseStockStatusResponse(responseText: string): AIStockStatusResult {
   };
 
   try {
-    // Extract JSON from response (handle markdown code blocks)
-    let jsonStr = responseText;
+    // Strip thinking tags from models like Qwen3/DeepSeek
+    let jsonStr = stripThinkingTags(responseText);
     const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       jsonStr = jsonMatch[1].trim();
@@ -549,7 +561,8 @@ function parseVerificationResponse(
     stockStatus: 'unknown',
   };
 
-  let jsonStr = responseText.trim();
+  // Strip thinking tags from models like Qwen3/DeepSeek
+  let jsonStr = stripThinkingTags(responseText).trim();
 
   // Handle markdown code blocks
   const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -608,8 +621,8 @@ function parseVerificationResponse(
 function parseAIResponse(responseText: string): AIExtractionResult {
   console.log(`[AI] Raw response: ${responseText.substring(0, 500)}...`);
 
-  // Try to extract JSON from the response
-  let jsonStr = responseText.trim();
+  // Strip thinking tags from models like Qwen3/DeepSeek, then try to extract JSON
+  let jsonStr = stripThinkingTags(responseText).trim();
 
   // Handle markdown code blocks
   const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -814,7 +827,8 @@ export async function tryAIStockStatusVerification(
 }
 
 // Arbitration prompt for when multiple extraction methods disagree
-const ARBITRATION_PROMPT = `You are a price arbitration assistant. Multiple price extraction methods found different prices for the same product. Help determine the correct price.
+const ARBITRATION_PROMPT = `/nothink
+You are a price arbitration assistant. Multiple price extraction methods found different prices for the same product. Help determine the correct price.
 
 Found prices:
 $CANDIDATES$
@@ -950,7 +964,8 @@ function parseArbitrationResponse(
     reason: 'Could not parse AI response',
   };
 
-  let jsonStr = responseText.trim();
+  // Strip thinking tags from models like Qwen3/DeepSeek
+  let jsonStr = stripThinkingTags(responseText).trim();
 
   // Handle markdown code blocks
   const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
