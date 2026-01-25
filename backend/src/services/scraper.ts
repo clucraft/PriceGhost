@@ -1637,7 +1637,10 @@ export async function scrapeProductWithVoting(
     }
 
     // If we have a price but AI is available, verify it
-    if (result.price && userId && html && !result.aiStatus) {
+    // SKIP verification if we have multiple candidates - let user choose from modal instead
+    // This prevents AI from "correcting" valid alternative prices (e.g., other sellers on Amazon)
+    const hasMultipleCandidates = allCandidates.length > 1;
+    if (result.price && userId && html && !result.aiStatus && !hasMultipleCandidates) {
       try {
         const { tryAIVerification } = await import('./ai-extractor');
         const verifyResult = await tryAIVerification(
