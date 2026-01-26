@@ -293,6 +293,9 @@ async function extractWithOllama(
       ],
       stream: false,
       think: false, // Disable thinking mode for Qwen3/DeepSeek models
+      options: {
+        num_ctx: 16384, // Increase context window for large HTML content
+      },
     },
     {
       headers: {
@@ -388,6 +391,9 @@ async function verifyWithOllama(
       messages: [{ role: 'user', content: prompt }],
       stream: false,
       think: false, // Disable thinking mode for Qwen3/DeepSeek models
+      options: {
+        num_ctx: 16384, // Increase context window for large HTML content
+      },
     },
     {
       headers: { 'Content-Type': 'application/json' },
@@ -481,6 +487,9 @@ async function verifyStockStatusWithOllama(
       messages: [{ role: 'user', content: prompt }],
       stream: false,
       think: false, // Disable thinking mode for Qwen3/DeepSeek models
+      options: {
+        num_ctx: 16384, // Increase context window for large HTML content
+      },
     },
     {
       headers: { 'Content-Type': 'application/json' },
@@ -937,6 +946,9 @@ async function arbitrateWithOllama(
       messages: [{ role: 'user', content: prompt }],
       stream: false,
       think: false, // Disable thinking mode for Qwen3/DeepSeek models
+      options: {
+        num_ctx: 16384, // Increase context window for large HTML content
+      },
     },
     {
       headers: { 'Content-Type': 'application/json' },
