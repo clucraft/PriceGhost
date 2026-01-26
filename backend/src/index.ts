@@ -191,6 +191,10 @@ async function runMigrations() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'ai_extraction_disabled') THEN
           ALTER TABLE products ADD COLUMN ai_extraction_disabled BOOLEAN DEFAULT false;
         END IF;
+        -- Per-product checking pause flag
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'products' AND column_name = 'checking_paused') THEN
+          ALTER TABLE products ADD COLUMN checking_paused BOOLEAN DEFAULT false;
+        END IF;
       END $$;
     `);
 

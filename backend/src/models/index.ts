@@ -344,6 +344,7 @@ export interface Product {
   notify_back_in_stock: boolean;
   ai_verification_disabled: boolean;
   ai_extraction_disabled: boolean;
+  checking_paused: boolean;
   created_at: Date;
 }
 
@@ -587,8 +588,8 @@ export const productQueries = {
   findDueForRefresh: async (): Promise<Product[]> => {
     const result = await pool.query(
       `SELECT * FROM products
-       WHERE next_check_at IS NULL
-       OR next_check_at < CURRENT_TIMESTAMP`
+       WHERE (next_check_at IS NULL OR next_check_at < CURRENT_TIMESTAMP)
+       AND (checking_paused IS NULL OR checking_paused = false)`
     );
     return result.rows;
   },
@@ -637,6 +638,15 @@ export const productQueries = {
       [id]
     );
     return result.rows[0]?.ai_extraction_disabled === true;
+  },
+
+  bulkSetCheckingPaused: async (ids: number[], userId: number, paused: boolean): Promise<number> => {
+    if (ids.length === 0) return 0;
+    const result = await pool.query(
+      `UPDATE products SET checking_paused = $1 WHERE id = ANY($2) AND user_id = $3`,
+      [paused, ids, userId]
+    );
+    return result.rowCount || 0;
   },
 };
 

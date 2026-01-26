@@ -67,6 +67,7 @@ export interface Product {
   notify_back_in_stock: boolean;
   ai_verification_disabled: boolean;
   ai_extraction_disabled: boolean;
+  checking_paused: boolean;
   created_at: string;
   current_price: number | null;
   currency: string | null;
@@ -138,6 +139,9 @@ export const productsApi = {
   }) => api.put<Product>(`/products/${id}`, data),
 
   delete: (id: number) => api.delete(`/products/${id}`),
+
+  bulkPause: (ids: number[], paused: boolean) =>
+    api.post<{ message: string; updated: number }>('/products/bulk/pause', { ids, paused }),
 };
 
 // Prices API

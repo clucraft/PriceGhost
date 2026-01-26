@@ -117,8 +117,10 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
   const isNearHistoricalLow = !isHistoricalLow && product.current_price && product.min_price &&
     product.current_price <= product.min_price * 1.05; // Within 5% of low
 
+  const isPaused = product.checking_paused;
+
   return (
-    <div className={`product-list-item ${isOutOfStock ? 'out-of-stock' : ''} ${isSelected ? 'selected' : ''}`}>
+    <div className={`product-list-item ${isOutOfStock ? 'out-of-stock' : ''} ${isSelected ? 'selected' : ''} ${isPaused ? 'checking-paused' : ''}`}>
       <style>{`
         .product-list-item {
           position: relative;
@@ -304,6 +306,32 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
 
         .product-list-item.out-of-stock .product-thumbnail {
           filter: grayscale(50%);
+        }
+
+        .product-list-item.checking-paused {
+          opacity: 0.6;
+        }
+
+        .product-list-item.checking-paused .product-thumbnail {
+          filter: grayscale(70%);
+        }
+
+        .paused-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.125rem 0.375rem;
+          background: var(--border);
+          color: var(--text-secondary);
+          border-radius: 0.25rem;
+          font-size: 0.6875rem;
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+
+        .paused-indicator svg {
+          width: 10px;
+          height: 10px;
         }
 
         .product-sparkline {
@@ -581,10 +609,20 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
       <div className="product-progress-container">
         <div
           className={`product-progress-bar ${isComplete ? 'complete' : ''}`}
-          style={{ width: `${progress}%` }}
+          style={{ width: isPaused ? 0 : `${progress}%` }}
         />
       </div>
-      <span className="product-time-remaining">{timeRemaining}</span>
+      {isPaused ? (
+        <span className="paused-indicator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+          Paused
+        </span>
+      ) : (
+        <span className="product-time-remaining">{timeRemaining}</span>
+      )}
     </div>
   );
 }

@@ -268,4 +268,31 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Bulk pause/resume checking
+router.post('/bulk/pause', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { ids, paused } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      res.status(400).json({ error: 'Product IDs array is required' });
+      return;
+    }
+
+    if (typeof paused !== 'boolean') {
+      res.status(400).json({ error: 'Paused status (boolean) is required' });
+      return;
+    }
+
+    const updated = await productQueries.bulkSetCheckingPaused(ids, userId, paused);
+    res.json({
+      message: `${updated} product(s) ${paused ? 'paused' : 'resumed'}`,
+      updated
+    });
+  } catch (error) {
+    console.error('Error bulk updating pause status:', error);
+    res.status(500).json({ error: 'Failed to update pause status' });
+  }
+});
+
 export default router;

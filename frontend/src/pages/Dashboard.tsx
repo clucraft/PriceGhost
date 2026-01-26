@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pauseFilter, setPauseFilter] = useState<'all' | 'active' | 'paused'>('all');
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const saved = localStorage.getItem('dashboard_sort_by');
     return (saved as SortOption) || 'date_added';
@@ -253,6 +254,42 @@ export default function Dashboard() {
     }
   };
 
+  const handleBulkPause = async () => {
+    setIsSavingBulk(true);
+    setShowBulkActions(false);
+    try {
+      await productsApi.bulkPause(Array.from(selectedIds), true);
+      setProducts(prev =>
+        prev.map(p =>
+          selectedIds.has(p.id) ? { ...p, checking_paused: true } : p
+        )
+      );
+      setSelectedIds(new Set());
+    } catch {
+      alert('Failed to pause some products');
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
+  const handleBulkResume = async () => {
+    setIsSavingBulk(true);
+    setShowBulkActions(false);
+    try {
+      await productsApi.bulkPause(Array.from(selectedIds), false);
+      setProducts(prev =>
+        prev.map(p =>
+          selectedIds.has(p.id) ? { ...p, checking_paused: false } : p
+        )
+      );
+      setSelectedIds(new Set());
+    } catch {
+      alert('Failed to resume some products');
+    } finally {
+      setIsSavingBulk(false);
+    }
+  };
+
   const clearSelection = () => {
     setSelectedIds(new Set());
     setShowBulkActions(false);
@@ -301,6 +338,13 @@ export default function Dashboard() {
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
 
+    // Filter by pause status
+    if (pauseFilter === 'active') {
+      result = result.filter(p => !p.checking_paused);
+    } else if (pauseFilter === 'paused') {
+      result = result.filter(p => p.checking_paused);
+    }
+
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -340,7 +384,7 @@ export default function Dashboard() {
     });
 
     return result;
-  }, [products, searchQuery, sortBy, sortOrder]);
+  }, [products, pauseFilter, searchQuery, sortBy, sortOrder]);
 
   return (
     <Layout>
@@ -426,6 +470,26 @@ export default function Dashboard() {
         }
 
         .sort-select:focus {
+          outline: none;
+          border-color: var(--primary);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .filter-select {
+          padding: 0.75rem 2rem 0.75rem 0.875rem;
+          border: 1px solid var(--border);
+          border-radius: 0.5rem;
+          background: var(--surface);
+          color: var(--text);
+          font-size: 0.9375rem;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.75rem center;
+        }
+
+        .filter-select:focus {
           outline: none;
           border-color: var(--primary);
           box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
@@ -764,6 +828,15 @@ export default function Dashboard() {
           </div>
           <div className="sort-controls">
             <select
+              className="filter-select"
+              value={pauseFilter}
+              onChange={(e) => setPauseFilter(e.target.value as 'all' | 'active' | 'paused')}
+            >
+              <option value="all">All Products</option>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+            </select>
+            <select
               className="sort-select"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -832,6 +905,20 @@ export default function Dashboard() {
                     <path d="m9 12 2 2 4-4" />
                   </svg>
                   Enable Stock Alerts
+                </button>
+                <hr />
+                <button onClick={handleBulkPause}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="6" y="4" width="4" height="16" />
+                    <rect x="14" y="4" width="4" height="16" />
+                  </svg>
+                  Pause Checking
+                </button>
+                <button onClick={handleBulkResume}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  Resume Checking
                 </button>
                 <hr />
                 <button className="danger" onClick={handleBulkDelete}>
