@@ -65,8 +65,10 @@ Return a JSON object with:
 - confidence: number from 0 to 1
 - suggestedPrice: the correct price as a number (or null if scraped price is correct)
 - suggestedCurrency: currency code if suggesting a different price
-- stockStatus: "in_stock", "out_of_stock", or "unknown" - based on whether the product can be purchased RIGHT NOW
+- stockStatus: MUST be "in_stock" or "out_of_stock" - use "out_of_stock" if the product cannot be purchased RIGHT NOW (including pre-order, coming soon, future availability dates). Only use "unknown" if there is absolutely no availability information on the page.
 - reason: brief explanation of your decision (mention both price and availability)
+
+IMPORTANT: If you mention in your reason that the product is "not available", "coming soon", "pre-order", or has a future date, you MUST set stockStatus to "out_of_stock", NOT "unknown".
 
 Only return valid JSON, no explanation text outside the JSON.
 
@@ -96,9 +98,11 @@ Signs the $VARIANT_PRICE$ variant is OUT OF STOCK:
 - A different price is shown as the main purchasable option
 
 Return a JSON object with:
-- stockStatus: "in_stock", "out_of_stock", or "unknown"
+- stockStatus: MUST be "in_stock" or "out_of_stock". Only use "unknown" if there is absolutely no availability information.
 - confidence: number from 0 to 1
 - reason: brief explanation focusing on the $VARIANT_PRICE$ variant specifically
+
+IMPORTANT: If your reason mentions the product is unavailable, coming soon, pre-order, or has a future date, set stockStatus to "out_of_stock".
 
 Only return valid JSON, no explanation text outside the JSON.
 
