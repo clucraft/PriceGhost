@@ -194,6 +194,9 @@ export interface NotificationSettings {
   pushover_app_token: string | null;
   pushover_enabled: boolean;
   ntfy_topic: string | null;
+  ntfy_server_url: string | null;
+  ntfy_username: string | null;
+  ntfy_password: string | null;
   ntfy_enabled: boolean;
   gotify_url: string | null;
   gotify_app_token: string | null;
@@ -214,6 +217,9 @@ export const settingsApi = {
     pushover_app_token?: string | null;
     pushover_enabled?: boolean;
     ntfy_topic?: string | null;
+    ntfy_server_url?: string | null;
+    ntfy_username?: string | null;
+    ntfy_password?: string | null;
     ntfy_enabled?: boolean;
     gotify_url?: string | null;
     gotify_app_token?: string | null;

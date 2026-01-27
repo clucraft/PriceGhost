@@ -46,6 +46,9 @@ export default function Settings() {
   const [pushoverAppToken, setPushoverAppToken] = useState('');
   const [pushoverEnabled, setPushoverEnabled] = useState(true);
   const [ntfyTopic, setNtfyTopic] = useState('');
+  const [ntfyServerUrl, setNtfyServerUrl] = useState('');
+  const [ntfyUsername, setNtfyUsername] = useState('');
+  const [ntfyPassword, setNtfyPassword] = useState('');
   const [ntfyEnabled, setNtfyEnabled] = useState(true);
   const [gotifyUrl, setGotifyUrl] = useState('');
   const [gotifyAppToken, setGotifyAppToken] = useState('');
@@ -114,6 +117,9 @@ export default function Settings() {
       setPushoverAppToken(notificationsRes.data.pushover_app_token || '');
       setPushoverEnabled(notificationsRes.data.pushover_enabled ?? true);
       setNtfyTopic(notificationsRes.data.ntfy_topic || '');
+      setNtfyServerUrl(notificationsRes.data.ntfy_server_url || '');
+      setNtfyUsername(notificationsRes.data.ntfy_username || '');
+      setNtfyPassword(notificationsRes.data.ntfy_password || '');
       setNtfyEnabled(notificationsRes.data.ntfy_enabled ?? true);
       setGotifyUrl(notificationsRes.data.gotify_url || '');
       setGotifyAppToken(notificationsRes.data.gotify_app_token || '');
@@ -341,8 +347,13 @@ export default function Settings() {
     try {
       const response = await settingsApi.updateNotifications({
         ntfy_topic: ntfyTopic || null,
+        ntfy_server_url: ntfyServerUrl || null,
+        ntfy_username: ntfyUsername || null,
+        ntfy_password: ntfyPassword || null,
       });
       setNotificationSettings(response.data);
+      // Clear password field after save for security
+      setNtfyPassword('');
       setSuccess('ntfy settings saved successfully');
     } catch {
       setError('Failed to save ntfy settings');
@@ -1386,6 +1397,19 @@ export default function Settings() {
                 )}
 
                 <div className="settings-form-group">
+                  <label>Server URL (optional)</label>
+                  <input
+                    type="text"
+                    value={ntfyServerUrl}
+                    onChange={(e) => setNtfyServerUrl(e.target.value)}
+                    placeholder="https://ntfy.sh"
+                  />
+                  <p className="hint">
+                    Leave blank to use ntfy.sh, or enter your self-hosted server URL
+                  </p>
+                </div>
+
+                <div className="settings-form-group">
                   <label>Topic Name</label>
                   <input
                     type="text"
@@ -1398,6 +1422,32 @@ export default function Settings() {
                     <a href="https://ntfy.sh" target="_blank" rel="noopener noreferrer">ntfy app</a>.
                   </p>
                 </div>
+
+                {ntfyServerUrl && (
+                  <>
+                    <div className="settings-form-group">
+                      <label>Username (optional)</label>
+                      <input
+                        type="text"
+                        value={ntfyUsername}
+                        onChange={(e) => setNtfyUsername(e.target.value)}
+                        placeholder="username"
+                      />
+                    </div>
+
+                    <div className="settings-form-group">
+                      <label>Password (optional)</label>
+                      <PasswordInput
+                        value={ntfyPassword}
+                        onChange={(e) => setNtfyPassword(e.target.value)}
+                        placeholder={notificationSettings?.ntfy_password ? '••••••••' : 'password'}
+                      />
+                      <p className="hint">
+                        Only required if your self-hosted ntfy server has authentication enabled
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <div className="settings-form-actions">
                   <button

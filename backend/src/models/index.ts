@@ -31,6 +31,9 @@ export interface NotificationSettings {
   pushover_app_token: string | null;
   pushover_enabled: boolean;
   ntfy_topic: string | null;
+  ntfy_server_url: string | null;
+  ntfy_username: string | null;
+  ntfy_password: string | null;
   ntfy_enabled: boolean;
   gotify_url: string | null;
   gotify_app_token: string | null;
@@ -81,7 +84,7 @@ export const userQueries = {
       `SELECT telegram_bot_token, telegram_chat_id, COALESCE(telegram_enabled, true) as telegram_enabled,
               discord_webhook_url, COALESCE(discord_enabled, true) as discord_enabled,
               pushover_user_key, pushover_app_token, COALESCE(pushover_enabled, true) as pushover_enabled,
-              ntfy_topic, COALESCE(ntfy_enabled, true) as ntfy_enabled,
+              ntfy_topic, ntfy_server_url, ntfy_username, ntfy_password, COALESCE(ntfy_enabled, true) as ntfy_enabled,
               gotify_url, gotify_app_token, COALESCE(gotify_enabled, true) as gotify_enabled
        FROM users WHERE id = $1`,
       [id]
@@ -133,6 +136,18 @@ export const userQueries = {
       fields.push(`ntfy_topic = $${paramIndex++}`);
       values.push(settings.ntfy_topic);
     }
+    if (settings.ntfy_server_url !== undefined) {
+      fields.push(`ntfy_server_url = $${paramIndex++}`);
+      values.push(settings.ntfy_server_url);
+    }
+    if (settings.ntfy_username !== undefined) {
+      fields.push(`ntfy_username = $${paramIndex++}`);
+      values.push(settings.ntfy_username);
+    }
+    if (settings.ntfy_password !== undefined) {
+      fields.push(`ntfy_password = $${paramIndex++}`);
+      values.push(settings.ntfy_password);
+    }
     if (settings.ntfy_enabled !== undefined) {
       fields.push(`ntfy_enabled = $${paramIndex++}`);
       values.push(settings.ntfy_enabled);
@@ -158,7 +173,7 @@ export const userQueries = {
        RETURNING telegram_bot_token, telegram_chat_id, COALESCE(telegram_enabled, true) as telegram_enabled,
                  discord_webhook_url, COALESCE(discord_enabled, true) as discord_enabled,
                  pushover_user_key, pushover_app_token, COALESCE(pushover_enabled, true) as pushover_enabled,
-                 ntfy_topic, COALESCE(ntfy_enabled, true) as ntfy_enabled,
+                 ntfy_topic, ntfy_server_url, ntfy_username, ntfy_password, COALESCE(ntfy_enabled, true) as ntfy_enabled,
                  gotify_url, gotify_app_token, COALESCE(gotify_enabled, true) as gotify_enabled`,
       values
     );

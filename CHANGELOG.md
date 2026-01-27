@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Test API key button to verify connection before saving
   - Full support for AI extraction, verification, stock status checking, and price arbitration
   - Get API key from [Google AI Studio](https://aistudio.google.com/apikey)
+- **Self-Hosted ntfy Support** - Use your own ntfy server instead of ntfy.sh
+  - Server URL field (defaults to ntfy.sh if left blank)
+  - Optional username/password authentication for protected servers
+  - Auth fields only shown when a custom server URL is entered
 
 ---
 
@@ -215,7 +219,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.0.6 | 2026-01-26 | Google Gemini AI support as new provider option |
+| 1.0.6 | 2026-01-26 | Google Gemini AI support, self-hosted ntfy support |
 | 1.0.5 | 2026-01-25 | AI model selector, per-product AI controls, Gotify support, Ollama fixes |
 | 1.0.4 | 2026-01-24 | Multi-strategy price voting system with user selection for ambiguous prices |
 | 1.0.3 | 2026-01-24 | Notification history with bell icon, clear button, and full history page |

@@ -116,6 +116,15 @@ async function runMigrations() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ntfy_topic') THEN
           ALTER TABLE users ADD COLUMN ntfy_topic TEXT;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ntfy_server_url') THEN
+          ALTER TABLE users ADD COLUMN ntfy_server_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ntfy_username') THEN
+          ALTER TABLE users ADD COLUMN ntfy_username TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ntfy_password') THEN
+          ALTER TABLE users ADD COLUMN ntfy_password TEXT;
+        END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'ntfy_enabled') THEN
           ALTER TABLE users ADD COLUMN ntfy_enabled BOOLEAN DEFAULT true;
         END IF;

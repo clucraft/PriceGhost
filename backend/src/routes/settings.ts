@@ -28,6 +28,9 @@ router.get('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_app_token: settings.pushover_app_token || null,
       pushover_enabled: settings.pushover_enabled ?? true,
       ntfy_topic: settings.ntfy_topic || null,
+      ntfy_server_url: settings.ntfy_server_url || null,
+      ntfy_username: settings.ntfy_username || null,
+      ntfy_password: settings.ntfy_password || null,
       ntfy_enabled: settings.ntfy_enabled ?? true,
       gotify_url: settings.gotify_url || null,
       gotify_app_token: settings.gotify_app_token || null,
@@ -53,6 +56,9 @@ router.put('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_app_token,
       pushover_enabled,
       ntfy_topic,
+      ntfy_server_url,
+      ntfy_username,
+      ntfy_password,
       ntfy_enabled,
       gotify_url,
       gotify_app_token,
@@ -69,6 +75,9 @@ router.put('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_app_token,
       pushover_enabled,
       ntfy_topic,
+      ntfy_server_url,
+      ntfy_username,
+      ntfy_password,
       ntfy_enabled,
       gotify_url,
       gotify_app_token,
@@ -90,6 +99,9 @@ router.put('/notifications', async (req: AuthRequest, res: Response) => {
       pushover_app_token: settings.pushover_app_token || null,
       pushover_enabled: settings.pushover_enabled ?? true,
       ntfy_topic: settings.ntfy_topic || null,
+      ntfy_server_url: settings.ntfy_server_url || null,
+      ntfy_username: settings.ntfy_username || null,
+      ntfy_password: settings.ntfy_password || null,
       ntfy_enabled: settings.ntfy_enabled ?? true,
       gotify_url: settings.gotify_url || null,
       gotify_app_token: settings.gotify_app_token || null,
@@ -218,14 +230,20 @@ router.post('/notifications/test/ntfy', async (req: AuthRequest, res: Response) 
     }
 
     const { sendNtfyNotification } = await import('../services/notifications');
-    const success = await sendNtfyNotification(settings.ntfy_topic, {
-      productName: 'Test Product',
-      productUrl: 'https://example.com',
-      type: 'price_drop',
-      oldPrice: 29.99,
-      newPrice: 19.99,
-      currency: 'USD',
-    });
+    const success = await sendNtfyNotification(
+      settings.ntfy_topic,
+      {
+        productName: 'Test Product',
+        productUrl: 'https://example.com',
+        type: 'price_drop',
+        oldPrice: 29.99,
+        newPrice: 19.99,
+        currency: 'USD',
+      },
+      settings.ntfy_server_url,
+      settings.ntfy_username,
+      settings.ntfy_password
+    );
 
     if (success) {
       res.json({ message: 'Test notification sent successfully' });

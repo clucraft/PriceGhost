@@ -197,7 +197,10 @@ export async function sendPushoverNotification(
 
 export async function sendNtfyNotification(
   topic: string,
-  payload: NotificationPayload
+  payload: NotificationPayload,
+  serverUrl?: string | null,
+  username?: string | null,
+  password?: string | null
 ): Promise<boolean> {
   try {
     const currencySymbol = getCurrencySymbol(payload.currency);
@@ -225,15 +228,26 @@ export async function sendNtfyNotification(
       tags = ['package', 'tada'];
     }
 
-    await axios.post(`https://ntfy.sh/${topic}`, message, {
-      headers: {
-        'Title': title,
-        'Tags': tags.join(','),
-        'Click': payload.productUrl,
-      },
-    });
+    // Use custom server URL or default to ntfy.sh
+    const baseUrl = serverUrl ? serverUrl.replace(/\/$/, '') : 'https://ntfy.sh';
+    const url = `${baseUrl}/${topic}`;
 
-    console.log(`ntfy notification sent to topic ${topic}`);
+    // Build headers
+    const headers: Record<string, string> = {
+      'Title': title,
+      'Tags': tags.join(','),
+      'Click': payload.productUrl,
+    };
+
+    // Add basic auth if credentials provided
+    if (username && password) {
+      const auth = Buffer.from(`${username}:${password}`).toString('base64');
+      headers['Authorization'] = `Basic ${auth}`;
+    }
+
+    await axios.post(url, message, { headers });
+
+    console.log(`ntfy notification sent to topic ${topic} on ${baseUrl}`);
     return true;
   } catch (error) {
     console.error('Failed to send ntfy notification:', error);
@@ -334,6 +348,9 @@ export async function sendNotifications(
     pushover_app_token: string | null;
     pushover_enabled?: boolean;
     ntfy_topic: string | null;
+    ntfy_server_url?: string | null;
+    ntfy_username?: string | null;
+    ntfy_password?: string | null;
     ntfy_enabled?: boolean;
     gotify_url: string | null;
     gotify_app_token: string | null;
@@ -368,7 +385,13 @@ export async function sendNotifications(
   if (settings.ntfy_topic && settings.ntfy_enabled !== false) {
     channelPromises.push({
       channel: 'ntfy',
-      promise: sendNtfyNotification(settings.ntfy_topic, payload),
+      promise: sendNtfyNotification(
+        settings.ntfy_topic,
+        payload,
+        settings.ntfy_server_url,
+        settings.ntfy_username,
+        settings.ntfy_password
+      ),
     });
   }
 
