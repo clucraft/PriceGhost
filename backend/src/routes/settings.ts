@@ -314,9 +314,13 @@ router.get('/ai', async (req: AuthRequest, res: Response) => {
       ai_verification_enabled: settings.ai_verification_enabled || false,
       ai_provider: settings.ai_provider || null,
       anthropic_api_key: settings.anthropic_api_key || null,
+      anthropic_model: settings.anthropic_model || null,
       openai_api_key: settings.openai_api_key || null,
+      openai_model: settings.openai_model || null,
       ollama_base_url: settings.ollama_base_url || null,
       ollama_model: settings.ollama_model || null,
+      gemini_api_key: settings.gemini_api_key || null,
+      gemini_model: settings.gemini_model || null,
     });
   } catch (error) {
     console.error('Error fetching AI settings:', error);
@@ -328,16 +332,32 @@ router.get('/ai', async (req: AuthRequest, res: Response) => {
 router.put('/ai', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { ai_enabled, ai_verification_enabled, ai_provider, anthropic_api_key, openai_api_key, ollama_base_url, ollama_model } = req.body;
+    const {
+      ai_enabled,
+      ai_verification_enabled,
+      ai_provider,
+      anthropic_api_key,
+      anthropic_model,
+      openai_api_key,
+      openai_model,
+      ollama_base_url,
+      ollama_model,
+      gemini_api_key,
+      gemini_model,
+    } = req.body;
 
     const settings = await userQueries.updateAISettings(userId, {
       ai_enabled,
       ai_verification_enabled,
       ai_provider,
       anthropic_api_key,
+      anthropic_model,
       openai_api_key,
+      openai_model,
       ollama_base_url,
       ollama_model,
+      gemini_api_key,
+      gemini_model,
     });
 
     if (!settings) {
@@ -350,9 +370,13 @@ router.put('/ai', async (req: AuthRequest, res: Response) => {
       ai_verification_enabled: settings.ai_verification_enabled || false,
       ai_provider: settings.ai_provider || null,
       anthropic_api_key: settings.anthropic_api_key || null,
+      anthropic_model: settings.anthropic_model || null,
       openai_api_key: settings.openai_api_key || null,
+      openai_model: settings.openai_model || null,
       ollama_base_url: settings.ollama_base_url || null,
       ollama_model: settings.ollama_model || null,
+      gemini_api_key: settings.gemini_api_key || null,
+      gemini_model: settings.gemini_model || null,
       message: 'AI settings updated successfully',
     });
   } catch (error) {
@@ -432,6 +456,46 @@ router.post('/ai/test-ollama', async (req: AuthRequest, res: Response) => {
     } else {
       res.status(500).json({
         error: `Failed to connect to Ollama: ${errorMessage}`,
+        success: false,
+      });
+    }
+  }
+});
+
+// Test Gemini API key
+router.post('/ai/test-gemini', async (req: AuthRequest, res: Response) => {
+  try {
+    const { api_key } = req.body;
+
+    if (!api_key) {
+      res.status(400).json({ error: 'API key is required' });
+      return;
+    }
+
+    // Test the API key by listing models
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(api_key);
+
+    // Try to generate a simple response to verify the key works
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    await model.generateContent('Say "API key valid" in 3 words or less');
+
+    res.json({
+      success: true,
+      message: 'Successfully connected to Gemini API',
+    });
+  } catch (error) {
+    console.error('Error testing Gemini connection:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (errorMessage.includes('API_KEY_INVALID') || errorMessage.includes('API key')) {
+      res.status(400).json({
+        error: 'Invalid API key. Please check your Gemini API key.',
+        success: false,
+      });
+    } else {
+      res.status(500).json({
+        error: `Failed to connect to Gemini: ${errorMessage}`,
         success: false,
       });
     }

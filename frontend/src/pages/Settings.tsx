@@ -58,7 +58,7 @@ export default function Settings() {
   const [aiSettings, setAISettings] = useState<AISettings | null>(null);
   const [aiEnabled, setAIEnabled] = useState(false);
   const [aiVerificationEnabled, setAIVerificationEnabled] = useState(false);
-  const [aiProvider, setAIProvider] = useState<'anthropic' | 'openai' | 'ollama'>('anthropic');
+  const [aiProvider, setAIProvider] = useState<'anthropic' | 'openai' | 'ollama' | 'gemini'>('anthropic');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
   const [anthropicModel, setAnthropicModel] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -67,6 +67,9 @@ export default function Settings() {
   const [ollamaModel, setOllamaModel] = useState('');
   const [availableOllamaModels, setAvailableOllamaModels] = useState<string[]>([]);
   const [isTestingOllama, setIsTestingOllama] = useState(false);
+  const [geminiApiKey, setGeminiApiKey] = useState('');
+  const [geminiModel, setGeminiModel] = useState('');
+  const [isTestingGemini, setIsTestingGemini] = useState(false);
   const [isSavingAI, setIsSavingAI] = useState(false);
   const [isTestingAI, setIsTestingAI] = useState(false);
   const [testUrl, setTestUrl] = useState('');
@@ -128,6 +131,8 @@ export default function Settings() {
       setOpenaiModel(aiRes.data.openai_model || '');
       setOllamaBaseUrl(aiRes.data.ollama_base_url || '');
       setOllamaModel(aiRes.data.ollama_model || '');
+      setGeminiApiKey(aiRes.data.gemini_api_key || '');
+      setGeminiModel(aiRes.data.gemini_model || '');
     } catch {
       setError('Failed to load settings');
     } finally {
@@ -448,13 +453,17 @@ export default function Settings() {
         openai_model: aiProvider === 'openai' ? openaiModel || null : undefined,
         ollama_base_url: aiProvider === 'ollama' ? ollamaBaseUrl || null : undefined,
         ollama_model: aiProvider === 'ollama' ? ollamaModel || null : undefined,
+        gemini_api_key: geminiApiKey || undefined,
+        gemini_model: aiProvider === 'gemini' ? geminiModel || null : undefined,
       });
       setAISettings(response.data);
       setAIVerificationEnabled(response.data.ai_verification_enabled ?? false);
       setAnthropicModel(response.data.anthropic_model || '');
       setOpenaiModel(response.data.openai_model || '');
+      setGeminiModel(response.data.gemini_model || '');
       setAnthropicApiKey('');
       setOpenaiApiKey('');
+      setGeminiApiKey('');
       setSuccess('AI settings saved successfully');
     } catch {
       setError('Failed to save AI settings');
@@ -482,6 +491,27 @@ export default function Settings() {
       setError('Failed to connect to Ollama. Make sure it is running.');
     } finally {
       setIsTestingOllama(false);
+    }
+  };
+
+  const handleTestGemini = async () => {
+    clearMessages();
+    if (!geminiApiKey) {
+      setError('Please enter your Gemini API key');
+      return;
+    }
+    setIsTestingGemini(true);
+    try {
+      const response = await settingsApi.testGemini(geminiApiKey);
+      if (response.data.success) {
+        setSuccess('Successfully connected to Gemini API!');
+      } else {
+        setError(response.data.error || 'Failed to connect to Gemini');
+      }
+    } catch {
+      setError('Failed to connect to Gemini. Check your API key.');
+    } finally {
+      setIsTestingGemini(false);
     }
   };
 
@@ -1572,7 +1602,7 @@ export default function Settings() {
                       <label>AI Provider</label>
                       <select
                         value={aiProvider}
-                        onChange={(e) => setAIProvider(e.target.value as 'anthropic' | 'openai' | 'ollama')}
+                        onChange={(e) => setAIProvider(e.target.value as 'anthropic' | 'openai' | 'ollama' | 'gemini')}
                         style={{
                           width: '100%',
                           padding: '0.625rem 0.75rem',
@@ -1585,6 +1615,7 @@ export default function Settings() {
                       >
                         <option value="anthropic">Anthropic (Claude)</option>
                         <option value="openai">OpenAI (GPT)</option>
+                        <option value="gemini">Google (Gemini)</option>
                         <option value="ollama">Ollama (Local)</option>
                       </select>
                     </div>
@@ -1750,6 +1781,64 @@ export default function Settings() {
                         </div>
                       </>
                     )}
+
+                    {aiProvider === 'gemini' && (
+                      <>
+                        <div className="settings-form-group">
+                          <label>Gemini API Key</label>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div style={{ flex: 1 }}>
+                              <PasswordInput
+                                value={geminiApiKey}
+                                onChange={(e) => setGeminiApiKey(e.target.value)}
+                                placeholder="AIza..."
+                              />
+                            </div>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={handleTestGemini}
+                              disabled={isTestingGemini || !geminiApiKey}
+                              style={{ whiteSpace: 'nowrap' }}
+                            >
+                              {isTestingGemini ? 'Testing...' : 'Test Key'}
+                            </button>
+                          </div>
+                          <p className="hint">
+                            Get your API key from{' '}
+                            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">
+                              aistudio.google.com
+                            </a>
+                          </p>
+                        </div>
+
+                        <div className="settings-form-group">
+                          <label>Model</label>
+                          <select
+                            value={geminiModel}
+                            onChange={(e) => setGeminiModel(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '0.625rem 0.75rem',
+                              border: '1px solid var(--border)',
+                              borderRadius: '0.375rem',
+                              background: 'var(--background)',
+                              color: 'var(--text)',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            <option value="">Default (Gemini 2.5 Flash Lite)</option>
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Fast, cheap)</option>
+                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Balanced)</option>
+                            <option value="gemini-2.5-pro">Gemini 2.5 Pro (High accuracy)</option>
+                            <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Latest)</option>
+                          </select>
+                          <p className="hint">
+                            Choose a model based on your cost/accuracy needs. Flash Lite is fastest and cheapest.
+                            {aiSettings?.gemini_model && ` (currently: ${aiSettings.gemini_model})`}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -1764,7 +1853,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              {aiSettings?.ai_enabled && (aiSettings.anthropic_api_key || aiSettings.openai_api_key || (aiSettings.ollama_base_url && aiSettings.ollama_model)) && (
+              {aiSettings?.ai_enabled && (aiSettings.anthropic_api_key || aiSettings.openai_api_key || (aiSettings.ollama_base_url && aiSettings.ollama_model) || aiSettings.gemini_api_key) && (
                 <div className="settings-section">
                   <div className="settings-section-header">
                     <span className="settings-section-icon">🧪</span>

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 import { load } from 'cheerio';
 import { AISettings } from '../models';
@@ -218,6 +219,7 @@ function prepareHtmlForAI(html: string): string {
 // Default models to use if user hasn't selected one
 const DEFAULT_ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
 const DEFAULT_OPENAI_MODEL = 'gpt-4.1-nano-2025-04-14';
+const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
 async function extractWithAnthropic(
   html: string,
@@ -324,6 +326,28 @@ async function extractWithOllama(
   return parseAIResponse(content);
 }
 
+async function extractWithGemini(
+  html: string,
+  apiKey: string,
+  model?: string | null
+): Promise<AIExtractionResult> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const modelToUse = model || DEFAULT_GEMINI_MODEL;
+  const geminiModel = genAI.getGenerativeModel({ model: modelToUse });
+
+  const preparedHtml = prepareHtmlForAI(html);
+
+  const result = await geminiModel.generateContent(EXTRACTION_PROMPT + preparedHtml);
+  const response = result.response;
+  const content = response.text();
+
+  if (!content) {
+    throw new Error('No response from Gemini');
+  }
+
+  return parseAIResponse(content);
+}
+
 // Verification functions for each provider
 async function verifyWithAnthropic(
   html: string,
@@ -423,6 +447,33 @@ async function verifyWithOllama(
   return parseVerificationResponse(content, scrapedPrice, currency);
 }
 
+async function verifyWithGemini(
+  html: string,
+  scrapedPrice: number,
+  currency: string,
+  apiKey: string,
+  model?: string | null
+): Promise<AIVerificationResult> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const modelToUse = model || DEFAULT_GEMINI_MODEL;
+  const geminiModel = genAI.getGenerativeModel({ model: modelToUse });
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = VERIFICATION_PROMPT
+    .replace('$SCRAPED_PRICE$', scrapedPrice.toString())
+    .replace('$CURRENCY$', currency) + preparedHtml;
+
+  const result = await geminiModel.generateContent(prompt);
+  const response = result.response;
+  const content = response.text();
+
+  if (!content) {
+    throw new Error('No response from Gemini');
+  }
+
+  return parseVerificationResponse(content, scrapedPrice, currency);
+}
+
 // Stock status verification functions (for variant products with anchor price)
 async function verifyStockStatusWithAnthropic(
   html: string,
@@ -517,6 +568,33 @@ async function verifyStockStatusWithOllama(
   const content = response.data?.message?.content;
   if (!content) {
     throw new Error('No response from Ollama');
+  }
+
+  return parseStockStatusResponse(content);
+}
+
+async function verifyStockStatusWithGemini(
+  html: string,
+  variantPrice: number,
+  currency: string,
+  apiKey: string,
+  model?: string | null
+): Promise<AIStockStatusResult> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const modelToUse = model || DEFAULT_GEMINI_MODEL;
+  const geminiModel = genAI.getGenerativeModel({ model: modelToUse });
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = STOCK_STATUS_PROMPT
+    .replace(/\$VARIANT_PRICE\$/g, variantPrice.toString())
+    .replace(/\$CURRENCY\$/g, currency) + preparedHtml;
+
+  const result = await geminiModel.generateContent(prompt);
+  const response = result.response;
+  const content = response.text();
+
+  if (!content) {
+    throw new Error('No response from Gemini');
   }
 
   return parseStockStatusResponse(content);
@@ -733,6 +811,8 @@ export async function extractWithAI(
     return extractWithOpenAI(html, settings.openai_api_key, settings.openai_model);
   } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
     return extractWithOllama(html, settings.ollama_base_url, settings.ollama_model);
+  } else if (settings.ai_provider === 'gemini' && settings.gemini_api_key) {
+    return extractWithGemini(html, settings.gemini_api_key, settings.gemini_model);
   }
 
   throw new Error('No valid AI provider configured');
@@ -765,6 +845,10 @@ export async function tryAIExtraction(
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI] Using Ollama (${settings.ollama_model}) for ${url}`);
       return await extractWithOllama(html, settings.ollama_base_url, settings.ollama_model);
+    } else if (settings.ai_provider === 'gemini' && settings.gemini_api_key) {
+      const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
+      console.log(`[AI] Using Gemini (${modelToUse}) for ${url}`);
+      return await extractWithGemini(html, settings.gemini_api_key, settings.gemini_model);
     }
 
     return null;
@@ -803,6 +887,10 @@ export async function tryAIVerification(
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI Verify] Using Ollama (${settings.ollama_model}) to verify $${scrapedPrice} for ${url}`);
       return await verifyWithOllama(html, scrapedPrice, currency, settings.ollama_base_url, settings.ollama_model);
+    } else if (settings.ai_provider === 'gemini' && settings.gemini_api_key) {
+      const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
+      console.log(`[AI Verify] Using Gemini (${modelToUse}) to verify $${scrapedPrice} for ${url}`);
+      return await verifyWithGemini(html, scrapedPrice, currency, settings.gemini_api_key, settings.gemini_model);
     }
 
     console.log(`[AI Verify] Verification enabled but no provider configured`);
@@ -842,6 +930,10 @@ export async function tryAIStockStatusVerification(
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI Stock] Using Ollama (${settings.ollama_model}) to verify stock status for $${variantPrice} variant at ${url}`);
       return await verifyStockStatusWithOllama(html, variantPrice, currency, settings.ollama_base_url, settings.ollama_model);
+    } else if (settings.ai_provider === 'gemini' && settings.gemini_api_key) {
+      const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
+      console.log(`[AI Stock] Using Gemini (${modelToUse}) to verify stock status for $${variantPrice} variant at ${url}`);
+      return await verifyStockStatusWithGemini(html, variantPrice, currency, settings.gemini_api_key, settings.gemini_model);
     }
 
     console.log(`[AI Stock] No AI provider configured for stock status verification`);
@@ -984,6 +1076,34 @@ async function arbitrateWithOllama(
   return parseArbitrationResponse(content, candidates);
 }
 
+async function arbitrateWithGemini(
+  html: string,
+  candidates: PriceCandidate[],
+  apiKey: string,
+  model?: string | null
+): Promise<AIArbitrationResult> {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const modelToUse = model || DEFAULT_GEMINI_MODEL;
+  const geminiModel = genAI.getGenerativeModel({ model: modelToUse });
+
+  const candidatesList = candidates.map((c, i) =>
+    `${i}. ${c.price} ${c.currency} (method: ${c.method}, context: ${c.context || 'none'})`
+  ).join('\n');
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = ARBITRATION_PROMPT.replace('$CANDIDATES$', candidatesList) + preparedHtml;
+
+  const result = await geminiModel.generateContent(prompt);
+  const response = result.response;
+  const content = response.text();
+
+  if (!content) {
+    throw new Error('No response from Gemini');
+  }
+
+  return parseArbitrationResponse(content, candidates);
+}
+
 function parseArbitrationResponse(
   responseText: string,
   candidates: PriceCandidate[]
@@ -1064,6 +1184,10 @@ export async function tryAIArbitration(
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI Arbitrate] Using Ollama (${settings.ollama_model}) to arbitrate ${candidates.length} prices for ${url}`);
       return await arbitrateWithOllama(html, candidates, settings.ollama_base_url, settings.ollama_model);
+    } else if (settings.ai_provider === 'gemini' && settings.gemini_api_key) {
+      const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
+      console.log(`[AI Arbitrate] Using Gemini (${modelToUse}) to arbitrate ${candidates.length} prices for ${url}`);
+      return await arbitrateWithGemini(html, candidates, settings.gemini_api_key, settings.gemini_model);
     }
 
     console.log(`[AI Arbitrate] No provider configured`);

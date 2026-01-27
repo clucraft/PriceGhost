@@ -5,6 +5,18 @@ All notable changes to PriceGhost will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-01-26
+
+### Added
+
+- **Google Gemini AI Support** - New AI provider option alongside Anthropic, OpenAI, and Ollama
+  - Supported models: Gemini 2.5 Flash Lite (default), Gemini 2.5 Flash, Gemini 2.5 Pro, Gemini 3 Flash Preview
+  - Test API key button to verify connection before saving
+  - Full support for AI extraction, verification, stock status checking, and price arbitration
+  - Get API key from [Google AI Studio](https://aistudio.google.com/apikey)
+
+---
+
 ## [1.0.5] - 2026-01-25
 
 ### Added
@@ -203,6 +215,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.0.6 | 2026-01-26 | Google Gemini AI support as new provider option |
 | 1.0.5 | 2026-01-25 | AI model selector, per-product AI controls, Gotify support, Ollama fixes |
 | 1.0.4 | 2026-01-24 | Multi-strategy price voting system with user selection for ambiguous prices |
 | 1.0.3 | 2026-01-24 | Notification history with bell icon, clear button, and full history page |

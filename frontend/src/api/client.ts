@@ -248,13 +248,15 @@ export const settingsApi = {
   updateAI: (data: {
     ai_enabled?: boolean;
     ai_verification_enabled?: boolean;
-    ai_provider?: 'anthropic' | 'openai' | 'ollama' | null;
+    ai_provider?: 'anthropic' | 'openai' | 'ollama' | 'gemini' | null;
     anthropic_api_key?: string | null;
     anthropic_model?: string | null;
     openai_api_key?: string | null;
     openai_model?: string | null;
     ollama_base_url?: string | null;
     ollama_model?: string | null;
+    gemini_api_key?: string | null;
+    gemini_model?: string | null;
   }) => api.put<AISettings & { message: string }>('/settings/ai', data),
 
   testAI: (url: string) =>
@@ -262,19 +264,24 @@ export const settingsApi = {
 
   testOllama: (baseUrl: string) =>
     api.post<OllamaTestResult>('/settings/ai/test-ollama', { base_url: baseUrl }),
+
+  testGemini: (apiKey: string) =>
+    api.post<{ success: boolean; message?: string; error?: string }>('/settings/ai/test-gemini', { api_key: apiKey }),
 };
 
 // AI Settings types
 export interface AISettings {
   ai_enabled: boolean;
   ai_verification_enabled: boolean;
-  ai_provider: 'anthropic' | 'openai' | 'ollama' | null;
+  ai_provider: 'anthropic' | 'openai' | 'ollama' | 'gemini' | null;
   anthropic_api_key: string | null;
   anthropic_model: string | null;
   openai_api_key: string | null;
   openai_model: string | null;
   ollama_base_url: string | null;
   ollama_model: string | null;
+  gemini_api_key: string | null;
+  gemini_model: string | null;
 }
 
 export interface OllamaTestResult {

@@ -1,6 +1,6 @@
 {
   "name": "priceghost-backend",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "PriceGhost price tracking API",
   "main": "dist/index.js",
   "scripts": {
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.6.0",
     "bcrypt": "^5.1.1",
     "cheerio": "^1.0.0-rc.12",
