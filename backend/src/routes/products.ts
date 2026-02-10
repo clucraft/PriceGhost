@@ -48,7 +48,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       const product = await productQueries.create(
         userId,
         url,
-        scrapedData.name,
+        scrapedData.name?.substring(0, 255) ?? null,
         scrapedData.imageUrl,
         refresh_interval || 3600,
         scrapedData.stockStatus
@@ -133,7 +133,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     const product = await productQueries.create(
       userId,
       url,
-      scrapedData.name,
+      scrapedData.name?.substring(0, 255) ?? null,
       scrapedData.imageUrl,
       refresh_interval || 3600,
       scrapedData.stockStatus
