@@ -187,7 +187,7 @@ cd PriceGhost
 # Start all services
 docker-compose up -d
 
-# Access at http://localhost:8089
+# Access at http://localhost:80
 ```
 
 ### Environment Variables
