@@ -254,7 +254,7 @@ export const settingsApi = {
   updateAI: (data: {
     ai_enabled?: boolean;
     ai_verification_enabled?: boolean;
-    ai_provider?: 'anthropic' | 'openai' | 'ollama' | 'gemini' | null;
+    ai_provider?: 'anthropic' | 'openai' | 'ollama' | 'gemini' | 'groq' | null;
     anthropic_api_key?: string | null;
     anthropic_model?: string | null;
     openai_api_key?: string | null;
@@ -263,6 +263,8 @@ export const settingsApi = {
     ollama_model?: string | null;
     gemini_api_key?: string | null;
     gemini_model?: string | null;
+    groq_api_key?: string | null;
+    groq_model?: string | null;
   }) => api.put<AISettings & { message: string }>('/settings/ai', data),
 
   testAI: (url: string) =>
@@ -273,13 +275,16 @@ export const settingsApi = {
 
   testGemini: (apiKey: string) =>
     api.post<{ success: boolean; message?: string; error?: string }>('/settings/ai/test-gemini', { api_key: apiKey }),
+
+  testGroq: (apiKey: string) =>
+    api.post<{ success: boolean; message?: string; error?: string }>('/settings/ai/test-groq', { api_key: apiKey }),
 };
 
 // AI Settings types
 export interface AISettings {
   ai_enabled: boolean;
   ai_verification_enabled: boolean;
-  ai_provider: 'anthropic' | 'openai' | 'ollama' | 'gemini' | null;
+  ai_provider: 'anthropic' | 'openai' | 'ollama' | 'gemini' | 'groq' | null;
   anthropic_api_key: string | null;
   anthropic_model: string | null;
   openai_api_key: string | null;
@@ -288,6 +293,8 @@ export interface AISettings {
   ollama_model: string | null;
   gemini_api_key: string | null;
   gemini_model: string | null;
+  groq_api_key: string | null;
+  groq_model: string | null;
 }
 
 export interface OllamaTestResult {

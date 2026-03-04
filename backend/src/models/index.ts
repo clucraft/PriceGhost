@@ -43,7 +43,7 @@ export interface NotificationSettings {
 export interface AISettings {
   ai_enabled: boolean;
   ai_verification_enabled: boolean;
-  ai_provider: 'anthropic' | 'openai' | 'ollama' | 'gemini' | null;
+  ai_provider: 'anthropic' | 'openai' | 'ollama' | 'gemini' | 'groq' | null;
   anthropic_api_key: string | null;
   anthropic_model: string | null;
   openai_api_key: string | null;
@@ -52,6 +52,8 @@ export interface AISettings {
   ollama_model: string | null;
   gemini_api_key: string | null;
   gemini_model: string | null;
+  groq_api_key: string | null;
+  groq_model: string | null;
 }
 
 export const userQueries = {
@@ -248,7 +250,8 @@ export const userQueries = {
     const result = await pool.query(
       `SELECT ai_enabled, COALESCE(ai_verification_enabled, false) as ai_verification_enabled,
               ai_provider, anthropic_api_key, anthropic_model, openai_api_key, openai_model,
-              ollama_base_url, ollama_model, gemini_api_key, gemini_model
+              ollama_base_url, ollama_model, gemini_api_key, gemini_model,
+              groq_api_key, groq_model
        FROM users WHERE id = $1`,
       [id]
     );
@@ -307,6 +310,14 @@ export const userQueries = {
       fields.push(`gemini_model = $${paramIndex++}`);
       values.push(settings.gemini_model);
     }
+    if (settings.groq_api_key !== undefined) {
+      fields.push(`groq_api_key = $${paramIndex++}`);
+      values.push(settings.groq_api_key);
+    }
+    if (settings.groq_model !== undefined) {
+      fields.push(`groq_model = $${paramIndex++}`);
+      values.push(settings.groq_model);
+    }
 
     if (fields.length === 0) return null;
 
@@ -315,7 +326,8 @@ export const userQueries = {
       `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}
        RETURNING ai_enabled, COALESCE(ai_verification_enabled, false) as ai_verification_enabled,
                  ai_provider, anthropic_api_key, anthropic_model, openai_api_key, openai_model,
-                 ollama_base_url, ollama_model, gemini_api_key, gemini_model`,
+                 ollama_base_url, ollama_model, gemini_api_key, gemini_model,
+                 groq_api_key, groq_model`,
       values
     );
     return result.rows[0] || null;

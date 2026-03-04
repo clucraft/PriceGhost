@@ -128,6 +128,18 @@ CREATE TABLE IF NOT EXISTS price_history (
   recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Migration: Add Groq AI columns to users if they don't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'groq_api_key'
+  ) THEN
+    ALTER TABLE users ADD COLUMN groq_api_key VARCHAR(255);
+    ALTER TABLE users ADD COLUMN groq_model VARCHAR(255);
+  END IF;
+END $$;
+
 -- Index for faster price history queries
 CREATE INDEX IF NOT EXISTS idx_price_history_product_date
 ON price_history(product_id, recorded_at);

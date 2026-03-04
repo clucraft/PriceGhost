@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import Groq from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
 import { load } from 'cheerio';
@@ -220,6 +221,7 @@ function prepareHtmlForAI(html: string): string {
 const DEFAULT_ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
 const DEFAULT_OPENAI_MODEL = 'gpt-4.1-nano-2025-04-14';
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
+const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 async function extractWithAnthropic(
   html: string,
@@ -343,6 +345,35 @@ async function extractWithGemini(
 
   if (!content) {
     throw new Error('No response from Gemini');
+  }
+
+  return parseAIResponse(content);
+}
+
+async function extractWithGroq(
+  html: string,
+  apiKey: string,
+  model?: string | null
+): Promise<AIExtractionResult> {
+  const groq = new Groq({ apiKey });
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const modelToUse = model || DEFAULT_GROQ_MODEL;
+
+  const response = await groq.chat.completions.create({
+    model: modelToUse,
+    max_tokens: 1024,
+    messages: [
+      {
+        role: 'user',
+        content: EXTRACTION_PROMPT + preparedHtml,
+      },
+    ],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error('No response from Groq');
   }
 
   return parseAIResponse(content);
@@ -474,6 +505,35 @@ async function verifyWithGemini(
   return parseVerificationResponse(content, scrapedPrice, currency);
 }
 
+async function verifyWithGroq(
+  html: string,
+  scrapedPrice: number,
+  currency: string,
+  apiKey: string,
+  model?: string | null
+): Promise<AIVerificationResult> {
+  const groq = new Groq({ apiKey });
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = VERIFICATION_PROMPT
+    .replace('$SCRAPED_PRICE$', scrapedPrice.toString())
+    .replace('$CURRENCY$', currency) + preparedHtml;
+  const modelToUse = model || DEFAULT_GROQ_MODEL;
+
+  const response = await groq.chat.completions.create({
+    model: modelToUse,
+    max_tokens: 512,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error('No response from Groq');
+  }
+
+  return parseVerificationResponse(content, scrapedPrice, currency);
+}
+
 // Stock status verification functions (for variant products with anchor price)
 async function verifyStockStatusWithAnthropic(
   html: string,
@@ -595,6 +655,35 @@ async function verifyStockStatusWithGemini(
 
   if (!content) {
     throw new Error('No response from Gemini');
+  }
+
+  return parseStockStatusResponse(content);
+}
+
+async function verifyStockStatusWithGroq(
+  html: string,
+  variantPrice: number,
+  currency: string,
+  apiKey: string,
+  model?: string | null
+): Promise<AIStockStatusResult> {
+  const groq = new Groq({ apiKey });
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = STOCK_STATUS_PROMPT
+    .replace(/\$VARIANT_PRICE\$/g, variantPrice.toString())
+    .replace(/\$CURRENCY\$/g, currency) + preparedHtml;
+  const modelToUse = model || DEFAULT_GROQ_MODEL;
+
+  const response = await groq.chat.completions.create({
+    model: modelToUse,
+    max_tokens: 256,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error('No response from Groq');
   }
 
   return parseStockStatusResponse(content);
@@ -813,6 +902,8 @@ export async function extractWithAI(
     return extractWithOllama(html, settings.ollama_base_url, settings.ollama_model);
   } else if (settings.ai_provider === 'gemini' && settings.gemini_api_key) {
     return extractWithGemini(html, settings.gemini_api_key, settings.gemini_model);
+  } else if (settings.ai_provider === 'groq' && settings.groq_api_key) {
+    return extractWithGroq(html, settings.groq_api_key, settings.groq_model);
   }
 
   throw new Error('No valid AI provider configured');
@@ -849,6 +940,10 @@ export async function tryAIExtraction(
       const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
       console.log(`[AI] Using Gemini (${modelToUse}) for ${url}`);
       return await extractWithGemini(html, settings.gemini_api_key, settings.gemini_model);
+    } else if (settings.ai_provider === 'groq' && settings.groq_api_key) {
+      const modelToUse = settings.groq_model || DEFAULT_GROQ_MODEL;
+      console.log(`[AI] Using Groq (${modelToUse}) for ${url}`);
+      return await extractWithGroq(html, settings.groq_api_key, settings.groq_model);
     }
 
     return null;
@@ -891,6 +986,10 @@ export async function tryAIVerification(
       const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
       console.log(`[AI Verify] Using Gemini (${modelToUse}) to verify $${scrapedPrice} for ${url}`);
       return await verifyWithGemini(html, scrapedPrice, currency, settings.gemini_api_key, settings.gemini_model);
+    } else if (settings.ai_provider === 'groq' && settings.groq_api_key) {
+      const modelToUse = settings.groq_model || DEFAULT_GROQ_MODEL;
+      console.log(`[AI Verify] Using Groq (${modelToUse}) to verify $${scrapedPrice} for ${url}`);
+      return await verifyWithGroq(html, scrapedPrice, currency, settings.groq_api_key, settings.groq_model);
     }
 
     console.log(`[AI Verify] Verification enabled but no provider configured`);
@@ -934,6 +1033,10 @@ export async function tryAIStockStatusVerification(
       const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
       console.log(`[AI Stock] Using Gemini (${modelToUse}) to verify stock status for $${variantPrice} variant at ${url}`);
       return await verifyStockStatusWithGemini(html, variantPrice, currency, settings.gemini_api_key, settings.gemini_model);
+    } else if (settings.ai_provider === 'groq' && settings.groq_api_key) {
+      const modelToUse = settings.groq_model || DEFAULT_GROQ_MODEL;
+      console.log(`[AI Stock] Using Groq (${modelToUse}) to verify stock status for $${variantPrice} variant at ${url}`);
+      return await verifyStockStatusWithGroq(html, variantPrice, currency, settings.groq_api_key, settings.groq_model);
     }
 
     console.log(`[AI Stock] No AI provider configured for stock status verification`);
@@ -1104,6 +1207,36 @@ async function arbitrateWithGemini(
   return parseArbitrationResponse(content, candidates);
 }
 
+async function arbitrateWithGroq(
+  html: string,
+  candidates: PriceCandidate[],
+  apiKey: string,
+  model?: string | null
+): Promise<AIArbitrationResult> {
+  const groq = new Groq({ apiKey });
+
+  const candidatesList = candidates.map((c, i) =>
+    `${i}. ${c.price} ${c.currency} (method: ${c.method}, context: ${c.context || 'none'})`
+  ).join('\n');
+
+  const preparedHtml = prepareHtmlForAI(html);
+  const prompt = ARBITRATION_PROMPT.replace('$CANDIDATES$', candidatesList) + preparedHtml;
+  const modelToUse = model || DEFAULT_GROQ_MODEL;
+
+  const response = await groq.chat.completions.create({
+    model: modelToUse,
+    max_tokens: 512,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error('No response from Groq');
+  }
+
+  return parseArbitrationResponse(content, candidates);
+}
+
 function parseArbitrationResponse(
   responseText: string,
   candidates: PriceCandidate[]
@@ -1188,6 +1321,10 @@ export async function tryAIArbitration(
       const modelToUse = settings.gemini_model || DEFAULT_GEMINI_MODEL;
       console.log(`[AI Arbitrate] Using Gemini (${modelToUse}) to arbitrate ${candidates.length} prices for ${url}`);
       return await arbitrateWithGemini(html, candidates, settings.gemini_api_key, settings.gemini_model);
+    } else if (settings.ai_provider === 'groq' && settings.groq_api_key) {
+      const modelToUse = settings.groq_model || DEFAULT_GROQ_MODEL;
+      console.log(`[AI Arbitrate] Using Groq (${modelToUse}) to arbitrate ${candidates.length} prices for ${url}`);
+      return await arbitrateWithGroq(html, candidates, settings.groq_api_key, settings.groq_model);
     }
 
     console.log(`[AI Arbitrate] No provider configured`);

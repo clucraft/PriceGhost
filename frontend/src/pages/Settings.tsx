@@ -61,7 +61,7 @@ export default function Settings() {
   const [aiSettings, setAISettings] = useState<AISettings | null>(null);
   const [aiEnabled, setAIEnabled] = useState(false);
   const [aiVerificationEnabled, setAIVerificationEnabled] = useState(false);
-  const [aiProvider, setAIProvider] = useState<'anthropic' | 'openai' | 'ollama' | 'gemini'>('anthropic');
+  const [aiProvider, setAIProvider] = useState<'anthropic' | 'openai' | 'ollama' | 'gemini' | 'groq'>('anthropic');
   const [anthropicApiKey, setAnthropicApiKey] = useState('');
   const [anthropicModel, setAnthropicModel] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -73,6 +73,9 @@ export default function Settings() {
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [geminiModel, setGeminiModel] = useState('');
   const [isTestingGemini, setIsTestingGemini] = useState(false);
+  const [groqApiKey, setGroqApiKey] = useState('');
+  const [groqModel, setGroqModel] = useState('');
+  const [isTestingGroq, setIsTestingGroq] = useState(false);
   const [isSavingAI, setIsSavingAI] = useState(false);
   const [isTestingAI, setIsTestingAI] = useState(false);
   const [testUrl, setTestUrl] = useState('');
@@ -139,6 +142,8 @@ export default function Settings() {
       setOllamaModel(aiRes.data.ollama_model || '');
       setGeminiApiKey(aiRes.data.gemini_api_key || '');
       setGeminiModel(aiRes.data.gemini_model || '');
+      setGroqApiKey(aiRes.data.groq_api_key || '');
+      setGroqModel(aiRes.data.groq_model || '');
     } catch {
       setError('Failed to load settings');
     } finally {
@@ -466,15 +471,19 @@ export default function Settings() {
         ollama_model: aiProvider === 'ollama' ? ollamaModel || null : undefined,
         gemini_api_key: geminiApiKey || undefined,
         gemini_model: aiProvider === 'gemini' ? geminiModel || null : undefined,
+        groq_api_key: groqApiKey || undefined,
+        groq_model: aiProvider === 'groq' ? groqModel || null : undefined,
       });
       setAISettings(response.data);
       setAIVerificationEnabled(response.data.ai_verification_enabled ?? false);
       setAnthropicModel(response.data.anthropic_model || '');
       setOpenaiModel(response.data.openai_model || '');
       setGeminiModel(response.data.gemini_model || '');
+      setGroqModel(response.data.groq_model || '');
       setAnthropicApiKey('');
       setOpenaiApiKey('');
       setGeminiApiKey('');
+      setGroqApiKey('');
       setSuccess('AI settings saved successfully');
     } catch {
       setError('Failed to save AI settings');
@@ -523,6 +532,27 @@ export default function Settings() {
       setError('Failed to connect to Gemini. Check your API key.');
     } finally {
       setIsTestingGemini(false);
+    }
+  };
+
+  const handleTestGroq = async () => {
+    clearMessages();
+    if (!groqApiKey) {
+      setError('Please enter your Groq API key');
+      return;
+    }
+    setIsTestingGroq(true);
+    try {
+      const response = await settingsApi.testGroq(groqApiKey);
+      if (response.data.success) {
+        setSuccess('Successfully connected to Groq API!');
+      } else {
+        setError(response.data.error || 'Failed to connect to Groq');
+      }
+    } catch {
+      setError('Failed to connect to Groq. Check your API key.');
+    } finally {
+      setIsTestingGroq(false);
     }
   };
 
@@ -1666,6 +1696,7 @@ export default function Settings() {
                         <option value="anthropic">Anthropic (Claude)</option>
                         <option value="openai">OpenAI (GPT)</option>
                         <option value="gemini">Google (Gemini)</option>
+                        <option value="groq">Groq (Free Tier)</option>
                         <option value="ollama">Ollama (Local)</option>
                       </select>
                     </div>
@@ -1889,6 +1920,64 @@ export default function Settings() {
                         </div>
                       </>
                     )}
+
+                    {aiProvider === 'groq' && (
+                      <>
+                        <div className="settings-form-group">
+                          <label>Groq API Key</label>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div style={{ flex: 1 }}>
+                              <PasswordInput
+                                value={groqApiKey}
+                                onChange={(e) => setGroqApiKey(e.target.value)}
+                                placeholder="gsk_..."
+                              />
+                            </div>
+                            <button
+                              className="btn btn-secondary"
+                              onClick={handleTestGroq}
+                              disabled={isTestingGroq || !groqApiKey}
+                              style={{ whiteSpace: 'nowrap' }}
+                            >
+                              {isTestingGroq ? 'Testing...' : 'Test Key'}
+                            </button>
+                          </div>
+                          <p className="hint">
+                            Get your free API key from{' '}
+                            <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">
+                              console.groq.com
+                            </a>
+                          </p>
+                        </div>
+
+                        <div className="settings-form-group">
+                          <label>Model</label>
+                          <select
+                            value={groqModel}
+                            onChange={(e) => setGroqModel(e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '0.625rem 0.75rem',
+                              border: '1px solid var(--border)',
+                              borderRadius: '0.375rem',
+                              background: 'var(--background)',
+                              color: 'var(--text)',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            <option value="">Default (Llama 3.3 70B)</option>
+                            <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Best accuracy)</option>
+                            <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant (Fastest)</option>
+                            <option value="mixtral-8x7b-32768">Mixtral 8x7B (Good at structured output)</option>
+                            <option value="gemma2-9b-it">Gemma 2 9B (Lightweight)</option>
+                          </select>
+                          <p className="hint">
+                            Groq offers free API access with fast inference. Llama 3.3 70B is recommended for best accuracy.
+                            {aiSettings?.groq_model && ` (currently: ${aiSettings.groq_model})`}
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -1903,7 +1992,7 @@ export default function Settings() {
                 </div>
               </div>
 
-              {aiSettings?.ai_enabled && (aiSettings.anthropic_api_key || aiSettings.openai_api_key || (aiSettings.ollama_base_url && aiSettings.ollama_model) || aiSettings.gemini_api_key) && (
+              {aiSettings?.ai_enabled && (aiSettings.anthropic_api_key || aiSettings.openai_api_key || (aiSettings.ollama_base_url && aiSettings.ollama_model) || aiSettings.gemini_api_key || aiSettings.groq_api_key) && (
                 <div className="settings-section">
                   <div className="settings-section-header">
                     <span className="settings-section-icon">🧪</span>

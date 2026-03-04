@@ -339,6 +339,8 @@ router.get('/ai', async (req: AuthRequest, res: Response) => {
       ollama_model: settings.ollama_model || null,
       gemini_api_key: settings.gemini_api_key || null,
       gemini_model: settings.gemini_model || null,
+      groq_api_key: settings.groq_api_key || null,
+      groq_model: settings.groq_model || null,
     });
   } catch (error) {
     console.error('Error fetching AI settings:', error);
@@ -362,6 +364,8 @@ router.put('/ai', async (req: AuthRequest, res: Response) => {
       ollama_model,
       gemini_api_key,
       gemini_model,
+      groq_api_key,
+      groq_model,
     } = req.body;
 
     const settings = await userQueries.updateAISettings(userId, {
@@ -376,6 +380,8 @@ router.put('/ai', async (req: AuthRequest, res: Response) => {
       ollama_model,
       gemini_api_key,
       gemini_model,
+      groq_api_key,
+      groq_model,
     });
 
     if (!settings) {
@@ -395,6 +401,8 @@ router.put('/ai', async (req: AuthRequest, res: Response) => {
       ollama_model: settings.ollama_model || null,
       gemini_api_key: settings.gemini_api_key || null,
       gemini_model: settings.gemini_model || null,
+      groq_api_key: settings.groq_api_key || null,
+      groq_model: settings.groq_model || null,
       message: 'AI settings updated successfully',
     });
   } catch (error) {
@@ -514,6 +522,48 @@ router.post('/ai/test-gemini', async (req: AuthRequest, res: Response) => {
     } else {
       res.status(500).json({
         error: `Failed to connect to Gemini: ${errorMessage}`,
+        success: false,
+      });
+    }
+  }
+});
+
+// Test Groq API key
+router.post('/ai/test-groq', async (req: AuthRequest, res: Response) => {
+  try {
+    const { api_key } = req.body;
+
+    if (!api_key) {
+      res.status(400).json({ error: 'API key is required' });
+      return;
+    }
+
+    const Groq = (await import('groq-sdk')).default;
+    const groq = new Groq({ apiKey: api_key });
+
+    // Try to generate a simple response to verify the key works
+    await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 10,
+      messages: [{ role: 'user', content: 'Say "API key valid" in 3 words or less' }],
+    });
+
+    res.json({
+      success: true,
+      message: 'Successfully connected to Groq API',
+    });
+  } catch (error) {
+    console.error('Error testing Groq connection:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (errorMessage.includes('401') || errorMessage.includes('invalid') || errorMessage.includes('API key')) {
+      res.status(400).json({
+        error: 'Invalid API key. Please check your Groq API key.',
+        success: false,
+      });
+    } else {
+      res.status(500).json({
+        error: `Failed to connect to Groq: ${errorMessage}`,
         success: false,
       });
     }
