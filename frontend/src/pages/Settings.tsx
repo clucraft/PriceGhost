@@ -66,6 +66,7 @@ export default function Settings() {
   const [anthropicModel, setAnthropicModel] = useState('');
   const [openaiApiKey, setOpenaiApiKey] = useState('');
   const [openaiModel, setOpenaiModel] = useState('');
+  const [openaiBaseUrl, setOpenaiBaseUrl] = useState('');
   const [ollamaBaseUrl, setOllamaBaseUrl] = useState('');
   const [ollamaModel, setOllamaModel] = useState('');
   const [availableOllamaModels, setAvailableOllamaModels] = useState<string[]>([]);
@@ -135,6 +136,7 @@ export default function Settings() {
       setAnthropicModel(aiRes.data.anthropic_model || '');
       setOpenaiApiKey(aiRes.data.openai_api_key || '');
       setOpenaiModel(aiRes.data.openai_model || '');
+      setOpenaiBaseUrl(aiRes.data.openai_base_url || '');
       setOllamaBaseUrl(aiRes.data.ollama_base_url || '');
       setOllamaModel(aiRes.data.ollama_model || '');
       setGeminiApiKey(aiRes.data.gemini_api_key || '');
@@ -462,6 +464,7 @@ export default function Settings() {
         anthropic_model: aiProvider === 'anthropic' ? anthropicModel || null : undefined,
         openai_api_key: openaiApiKey || undefined,
         openai_model: aiProvider === 'openai' ? openaiModel || null : undefined,
+        openai_base_url: aiProvider === 'openai' ? openaiBaseUrl || null : undefined,
         ollama_base_url: aiProvider === 'ollama' ? ollamaBaseUrl || null : undefined,
         ollama_model: aiProvider === 'ollama' ? ollamaModel || null : undefined,
         gemini_api_key: geminiApiKey || undefined,
@@ -471,6 +474,7 @@ export default function Settings() {
       setAIVerificationEnabled(response.data.ai_verification_enabled ?? false);
       setAnthropicModel(response.data.anthropic_model || '');
       setOpenaiModel(response.data.openai_model || '');
+      setOpenaiBaseUrl(response.data.openai_base_url || '');
       setGeminiModel(response.data.gemini_model || '');
       setAnthropicApiKey('');
       setOpenaiApiKey('');
@@ -1761,6 +1765,21 @@ export default function Settings() {
                           <p className="hint">
                             Choose a model based on your cost/accuracy needs. GPT-4.1 Nano is fastest and cheapest.
                             {aiSettings?.openai_model && ` (currently: ${aiSettings.openai_model})`}
+                          </p>
+                        </div>
+
+                        <div className="settings-form-group">
+                          <label>Base URL (optional — for LiteLLM / OpenAI-compatible proxies)</label>
+                          <input
+                            type="text"
+                            value={openaiBaseUrl}
+                            onChange={(e) => setOpenaiBaseUrl(e.target.value)}
+                            placeholder="https://api.openai.com/v1"
+                          />
+                          <p className="hint">
+                            Leave blank for default OpenAI API. Set to your LiteLLM proxy URL (e.g., http://litellm:4000/v1)
+                            to use a custom model provider.
+                            {aiSettings?.openai_base_url && ` (currently: ${aiSettings.openai_base_url})`}
                           </p>
                         </div>
                       </>

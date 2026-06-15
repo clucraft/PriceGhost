@@ -48,6 +48,7 @@ export interface AISettings {
   anthropic_model: string | null;
   openai_api_key: string | null;
   openai_model: string | null;
+  openai_base_url: string | null;
   ollama_base_url: string | null;
   ollama_model: string | null;
   gemini_api_key: string | null;
@@ -244,11 +245,11 @@ export const userQueries = {
     return (result.rowCount ?? 0) > 0;
   },
 
-  getAISettings: async (id: number): Promise<AISettings | null> => {
+    getAISettings: async (id: number): Promise<AISettings | null> => {
     const result = await pool.query(
       `SELECT ai_enabled, COALESCE(ai_verification_enabled, false) as ai_verification_enabled,
               ai_provider, anthropic_api_key, anthropic_model, openai_api_key, openai_model,
-              ollama_base_url, ollama_model, gemini_api_key, gemini_model
+              openai_base_url, ollama_base_url, ollama_model, gemini_api_key, gemini_model
        FROM users WHERE id = $1`,
       [id]
     );
@@ -291,6 +292,10 @@ export const userQueries = {
       fields.push(`openai_model = $${paramIndex++}`);
       values.push(settings.openai_model);
     }
+    if (settings.openai_base_url !== undefined) {
+      fields.push(`openai_base_url = $${paramIndex++}`);
+      values.push(settings.openai_base_url);
+    }
     if (settings.ollama_base_url !== undefined) {
       fields.push(`ollama_base_url = $${paramIndex++}`);
       values.push(settings.ollama_base_url);
@@ -315,7 +320,7 @@ export const userQueries = {
       `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramIndex}
        RETURNING ai_enabled, COALESCE(ai_verification_enabled, false) as ai_verification_enabled,
                  ai_provider, anthropic_api_key, anthropic_model, openai_api_key, openai_model,
-                 ollama_base_url, ollama_model, gemini_api_key, gemini_model`,
+                 openai_base_url, ollama_base_url, ollama_model, gemini_api_key, gemini_model`,
       values
     );
     return result.rows[0] || null;

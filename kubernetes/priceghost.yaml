@@ -1,0 +1,185 @@
+# =============================================================================
+# PriceGhost — Kubernetes Deployment Manifests
+#
+# Deployed via GitHub Actions (build-priceghost.yml).
+# Secrets (DATABASE_URL, JWT_SECRET) are managed separately via
+# the priceghost-secrets Secret in the priceghost namespace.
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: priceghost
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: priceghost
+  namespace: priceghost
+  labels:
+    app: priceghost
+spec:
+  entryPoints:
+    - web
+  routes:
+    - kind: Rule
+      match: Host(`priceghost.mommycaniplay.com`) || Host(`priceghost.mommycaniwatch.com`)
+      middlewares:
+        - name: authelia-chain
+          namespace: priceghost
+      services:
+        - name: frontend
+          port: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: priceghost
+  labels:
+    app: priceghost
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: priceghost
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: priceghost
+        component: backend
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/clucraft/priceghost-backend:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 3001
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: database-url
+                  name: priceghost-secrets
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  key: jwt-secret
+                  name: priceghost-secrets
+            - name: PORT
+              value: "3001"
+            - name: NODE_ENV
+              value: production
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3001
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: priceghost
+  labels:
+    app: priceghost
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: priceghost
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: priceghost
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/clucraft/priceghost-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: priceghost
+  labels:
+    app: priceghost
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
+      protocol: TCP
+  selector:
+    app: priceghost
+    component: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: priceghost
+  labels:
+    app: priceghost
+    component: frontend
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app: priceghost
+    component: frontend

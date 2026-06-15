@@ -259,6 +259,7 @@ export const settingsApi = {
     anthropic_model?: string | null;
     openai_api_key?: string | null;
     openai_model?: string | null;
+    openai_base_url?: string | null;
     ollama_base_url?: string | null;
     ollama_model?: string | null;
     gemini_api_key?: string | null;
@@ -284,6 +285,7 @@ export interface AISettings {
   anthropic_model: string | null;
   openai_api_key: string | null;
   openai_model: string | null;
+  openai_base_url: string | null;
   ollama_base_url: string | null;
   ollama_model: string | null;
   gemini_api_key: string | null;

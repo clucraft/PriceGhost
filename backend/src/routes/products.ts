@@ -42,7 +42,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     // If user is confirming a price selection, use the old scraper with their choice
     if (selectedPrice !== undefined && selectedMethod) {
       // User has selected a price from candidates - use it directly
-      const scrapedData = await scrapeProduct(url, userId);
+      const scrapedData = await scrapeProductWithVoting(url, userId);
 
       // Create product with the user-selected price
       const product = await productQueries.create(

@@ -253,9 +253,12 @@ async function extractWithAnthropic(
 async function extractWithOpenAI(
   html: string,
   apiKey: string,
-  model?: string | null
+  model?: string | null,
+  baseURL?: string | null
 ): Promise<AIExtractionResult> {
-  const openai = new OpenAI({ apiKey });
+  const openaiConfig: Record<string, string> = { apiKey };
+  if (baseURL) openaiConfig.baseURL = baseURL;
+  const openai = new OpenAI(openaiConfig);
 
   const preparedHtml = prepareHtmlForAI(html);
   const modelToUse = model || DEFAULT_OPENAI_MODEL;
@@ -383,9 +386,12 @@ async function verifyWithOpenAI(
   scrapedPrice: number,
   currency: string,
   apiKey: string,
-  model?: string | null
+  model?: string | null,
+  baseURL?: string | null
 ): Promise<AIVerificationResult> {
-  const openai = new OpenAI({ apiKey });
+  const openaiConfig: Record<string, string> = { apiKey };
+  if (baseURL) openaiConfig.baseURL = baseURL;
+  const openai = new OpenAI(openaiConfig);
 
   const preparedHtml = prepareHtmlForAI(html);
   const prompt = VERIFICATION_PROMPT
@@ -509,9 +515,12 @@ async function verifyStockStatusWithOpenAI(
   variantPrice: number,
   currency: string,
   apiKey: string,
-  model?: string | null
+  model?: string | null,
+  baseURL?: string | null
 ): Promise<AIStockStatusResult> {
-  const openai = new OpenAI({ apiKey });
+  const openaiConfig: Record<string, string> = { apiKey };
+  if (baseURL) openaiConfig.baseURL = baseURL;
+  const openai = new OpenAI(openaiConfig);
 
   const preparedHtml = prepareHtmlForAI(html);
   const prompt = STOCK_STATUS_PROMPT
@@ -808,7 +817,7 @@ export async function extractWithAI(
   if (settings.ai_provider === 'anthropic' && settings.anthropic_api_key) {
     return extractWithAnthropic(html, settings.anthropic_api_key, settings.anthropic_model);
   } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
-    return extractWithOpenAI(html, settings.openai_api_key, settings.openai_model);
+    return extractWithOpenAI(html, settings.openai_api_key, settings.openai_model, settings.openai_base_url);
   } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
     return extractWithOllama(html, settings.ollama_base_url, settings.ollama_model);
   } else if (settings.ai_provider === 'gemini' && settings.gemini_api_key) {
@@ -841,7 +850,7 @@ export async function tryAIExtraction(
     } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
       const modelToUse = settings.openai_model || DEFAULT_OPENAI_MODEL;
       console.log(`[AI] Using OpenAI (${modelToUse}) for ${url}`);
-      return await extractWithOpenAI(html, settings.openai_api_key, settings.openai_model);
+      return await extractWithOpenAI(html, settings.openai_api_key, settings.openai_model, settings.openai_base_url);
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI] Using Ollama (${settings.ollama_model}) for ${url}`);
       return await extractWithOllama(html, settings.ollama_base_url, settings.ollama_model);
@@ -883,7 +892,7 @@ export async function tryAIVerification(
     } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
       const modelToUse = settings.openai_model || DEFAULT_OPENAI_MODEL;
       console.log(`[AI Verify] Using OpenAI (${modelToUse}) to verify $${scrapedPrice} for ${url}`);
-      return await verifyWithOpenAI(html, scrapedPrice, currency, settings.openai_api_key, settings.openai_model);
+      return await verifyWithOpenAI(html, scrapedPrice, currency, settings.openai_api_key, settings.openai_model, settings.openai_base_url);
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI Verify] Using Ollama (${settings.ollama_model}) to verify $${scrapedPrice} for ${url}`);
       return await verifyWithOllama(html, scrapedPrice, currency, settings.ollama_base_url, settings.ollama_model);
@@ -926,7 +935,7 @@ export async function tryAIStockStatusVerification(
     } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
       const modelToUse = settings.openai_model || DEFAULT_OPENAI_MODEL;
       console.log(`[AI Stock] Using OpenAI (${modelToUse}) to verify stock status for $${variantPrice} variant at ${url}`);
-      return await verifyStockStatusWithOpenAI(html, variantPrice, currency, settings.openai_api_key, settings.openai_model);
+      return await verifyStockStatusWithOpenAI(html, variantPrice, currency, settings.openai_api_key, settings.openai_model, settings.openai_base_url);
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI Stock] Using Ollama (${settings.ollama_model}) to verify stock status for $${variantPrice} variant at ${url}`);
       return await verifyStockStatusWithOllama(html, variantPrice, currency, settings.ollama_base_url, settings.ollama_model);
@@ -1009,9 +1018,12 @@ async function arbitrateWithOpenAI(
   html: string,
   candidates: PriceCandidate[],
   apiKey: string,
-  model?: string | null
+  model?: string | null,
+  baseURL?: string | null
 ): Promise<AIArbitrationResult> {
-  const openai = new OpenAI({ apiKey });
+  const openaiConfig: Record<string, string> = { apiKey };
+  if (baseURL) openaiConfig.baseURL = baseURL;
+  const openai = new OpenAI(openaiConfig);
 
   const candidatesList = candidates.map((c, i) =>
     `${i}. ${c.price} ${c.currency} (method: ${c.method}, context: ${c.context || 'none'})`
@@ -1180,7 +1192,7 @@ export async function tryAIArbitration(
     } else if (settings.ai_provider === 'openai' && settings.openai_api_key) {
       const modelToUse = settings.openai_model || DEFAULT_OPENAI_MODEL;
       console.log(`[AI Arbitrate] Using OpenAI (${modelToUse}) to arbitrate ${candidates.length} prices for ${url}`);
-      return await arbitrateWithOpenAI(html, candidates, settings.openai_api_key, settings.openai_model);
+      return await arbitrateWithOpenAI(html, candidates, settings.openai_api_key, settings.openai_model, settings.openai_base_url);
     } else if (settings.ai_provider === 'ollama' && settings.ollama_base_url && settings.ollama_model) {
       console.log(`[AI Arbitrate] Using Ollama (${settings.ollama_model}) to arbitrate ${candidates.length} prices for ${url}`);
       return await arbitrateWithOllama(html, candidates, settings.ollama_base_url, settings.ollama_model);

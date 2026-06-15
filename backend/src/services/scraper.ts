@@ -335,7 +335,7 @@ interface SiteScraper {
 const siteScrapers: SiteScraper[] = [
   // Amazon
   {
-    match: (url) => /amazon\.(com|co\.uk|ca|de|fr|es|it|co\.jp|in|com\.au)/i.test(url),
+    match: (url) => /(?:a\.co|amazon\.(?:com|co\.uk|ca|de|fr|es|it|co\.jp|in|com\.au))/i.test(url),
     scrape: ($) => {
       // Helper to check if element is inside a coupon/savings container
       const isInCouponContainer = (el: ReturnType<typeof $>) => {
@@ -1147,16 +1147,6 @@ export async function scrapeProduct(url: string, userId?: number): Promise<Scrap
             'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-          'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1',
         },
         timeout: 20000,
         maxRedirects: 5,
@@ -1408,16 +1398,6 @@ export async function scrapeProductWithVoting(
             'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-          'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1',
         },
         timeout: 20000,
         maxRedirects: 5,

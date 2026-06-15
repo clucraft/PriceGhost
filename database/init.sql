@@ -119,6 +119,17 @@ BEGIN
   END IF;
 END $$;
 
+-- Migration: Add AI base URL columns to users if they don't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'users' AND column_name = 'openai_base_url'
+  ) THEN
+    ALTER TABLE users ADD COLUMN openai_base_url VARCHAR(512);
+  END IF;
+END $$;
+
 -- Price history table
 CREATE TABLE IF NOT EXISTS price_history (
   id SERIAL PRIMARY KEY,
