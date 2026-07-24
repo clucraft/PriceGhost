@@ -51,3 +51,6 @@ tmp/
 !.agents/rules/
 !.agents/config.json
 
+# Ignore Gemini project dir
+.gemini/
+
