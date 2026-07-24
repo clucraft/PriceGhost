@@ -1,12 +1,12 @@
 import express from 'express';
-import { log } from './utils/logger.mjs';
-import { startWatchdog } from './core/SessionManager.mjs';
-import router from './api/routes.mjs';
+import { log } from './utils/logger.js';
+import { startWatchdog } from './core/SessionManager.js';
+import router from './api/routes.js';
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
 
-const PORT = process.env.PORT || 5100;
+const PORT = Number(process.env.PORT) || 5100;
 
 // Use modular routes
 app.use('/', router);

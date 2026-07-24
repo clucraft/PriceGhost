@@ -1,14 +1,16 @@
 import express from 'express';
-import { log } from '../utils/logger.mjs';
-import { ScraperService } from '../services/ScraperService.mjs';
-import { SessionService } from '../services/SessionService.mjs';
-import { IDLE_TIMEOUT, MAX_SCRAPES_PER_BROWSER } from '../core/SessionManager.mjs';
+import { log } from '../utils/logger.js';
+import { ScraperService } from '../services/ScraperService.js';
+import { SessionService } from '../services/SessionService.js';
+import { IDLE_TIMEOUT, MAX_SCRAPES_PER_BROWSER } from '../core/SessionManager.js';
+import type { ScrapeOptions } from '../types.js';
+import { errorMessage } from '../types.js';
 
 const router = express.Router();
 
 // Scrape endpoint
 router.post('/scrape', async (req, res) => {
-  const { url, options = {} } = req.body;
+  const { url, options = {} } = req.body as { url?: string; options?: ScrapeOptions };
   
   // Diagnostic log for identity debugging
   log(`Incoming Scrape Request | URL: ${url} | UA: ${options.userAgent || 'None'} | Proxy: ${options.proxyUrl || 'None'}`, 'INFO');
@@ -66,8 +68,9 @@ router.post('/scrape', async (req, res) => {
     if (abortController.signal.aborted) {
       log(`Scrape aborted: ${url}`, 'DEBUG', context);
     } else {
-      log(`Scrape Error: ${url} | ${error.message}`, 'ERROR', context);
-      res.status(500).json({ error: error.message });
+      const message = errorMessage(error);
+      log(`Scrape Error: ${url} | ${message}`, 'ERROR', context);
+      res.status(500).json({ error: message });
     }
   } finally {
     session.activePages--;

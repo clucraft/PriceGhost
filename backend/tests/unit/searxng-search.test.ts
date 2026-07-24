@@ -7,12 +7,12 @@ vi.mock('axios');
 vi.mock('../../src/utils/cache');
 vi.mock('../../src/services/domain/retailer/RetailerQueryService', () => {
   return {
-    RetailerQueryService: vi.fn().mockImplementation(() => ({
-      getRetailerForUrl: vi.fn().mockImplementation(async (url: string) => {
+    RetailerQueryService: class {
+      getRetailerForUrl = vi.fn().mockImplementation(async (url: string) => {
         if (url.includes('amazon.com')) return { domain: 'amazon.com' };
         return null;
-      })
-    }))
+      });
+    }
   };
 });
 

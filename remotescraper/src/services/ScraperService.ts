@@ -1,12 +1,19 @@
-import { log } from '../utils/logger.mjs';
-import { performHumanLikeActions } from '../core/Actions.mjs';
+import { log } from '../utils/logger.js';
+import { performHumanLikeActions } from '../core/Actions.js';
+import type { BrowserSession, ScrapeOptions, ScrapeResult, ScraperPage } from '../types.js';
+import { errorMessage } from '../types.js';
 
 export class ScraperService {
   /**
    * Performs the scraping operation for a given URL using the provided session and options.
    */
-  static async scrape(url, session, options = {}, abortSignal) {
-    let page = null;
+  static async scrape(
+    url: string,
+    session: BrowserSession,
+    options: ScrapeOptions = {},
+    abortSignal?: AbortSignal,
+  ): Promise<ScrapeResult | null> {
+    let page: ScraperPage | null = null;
     const context = {
       requestId: options.requestId,
       productId: options.productId,
@@ -43,7 +50,7 @@ export class ScraperService {
       const onAbort = async () => {
         if (page) {
           log(`Aborting active page for ${url}`, 'WARN', context);
-          await page.close().catch(e => log(`Error closing aborted page: ${e.message}`, 'DEBUG', context));
+          await page.close().catch(error => log(`Error closing aborted page: ${errorMessage(error)}`, 'DEBUG', context));
           page = null;
         }
       };
@@ -107,12 +114,15 @@ export class ScraperService {
 
     } catch (error) {
       if (!abortSignal?.aborted) {
-        log(`Scrape Internal Error: ${error.message}`, 'ERROR', { ...context, metadata: { stack: error.stack } });
+        log(`Scrape Internal Error: ${errorMessage(error)}`, 'ERROR', {
+          ...context,
+          metadata: { stack: error instanceof Error ? error.stack : undefined },
+        });
       }
       throw error;
     } finally {
       if (page) {
-        await page.close().catch(err => log(`Failed to close page: ${err.message}`, 'DEBUG', context));
+        await page.close().catch(error => log(`Failed to close page: ${errorMessage(error)}`, 'DEBUG', context));
       }
     }
   }

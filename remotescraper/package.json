@@ -2,10 +2,11 @@
   "name": "stealth-scraper",
   "version": "1.0.36",
   "description": "Bulletproof Puppeteer scraper with stealth and adblocker",
-  "main": "src/remotescraper.mjs",
+  "main": "dist/remotescraper.js",
   "type": "module",
   "scripts": {
-    "build": "esbuild src/remotescraper.mjs --bundle --platform=node --target=node20 --outfile=dist/remotescraper.cjs --minify --format=cjs --external:puppeteer --external:puppeteer-extra --external:puppeteer-extra-plugin-stealth --external:puppeteer-extra-plugin-adblocker"
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "axios": "1.14.0",
@@ -17,6 +18,8 @@
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   },
   "devDependencies": {
-    "esbuild": "^0.20.0"
+    "@types/express": "^4.17.25",
+    "@types/node": "^20.19.39",
+    "typescript": "^7.0.2"
   }
 }

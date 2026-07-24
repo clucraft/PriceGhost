@@ -6,8 +6,8 @@
 #
 #   docker build -f remotescraper/Dockerfile .
 #
-# Self-contained: esbuild bundles here rather than the dist/ being copied in
-# from a developer's machine, so a clean checkout is all CI needs.
+# Self-contained: TypeScript is compiled here rather than copying a developer's
+# dist/ directory, so a clean checkout is all CI needs.
 
 # --- build stage -----------------------------------------------------------
 # Runs on the native build platform, not the target: tsc/vite/esbuild output is
@@ -21,6 +21,7 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY remotescraper/package.json ./remotescraper/
+COPY remotescraper/tsconfig.json ./remotescraper/
 
 # Chromium is installed via apt in the runtime stage, so Puppeteer must not
 # also download its own copy -- that would add several hundred MB per arch.
@@ -78,4 +79,4 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
 
 EXPOSE 5100
 
-CMD ["node", "dist/remotescraper.cjs"]
+CMD ["node", "dist/remotescraper.js"]

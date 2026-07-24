@@ -1,11 +1,22 @@
-import puppeteer from 'puppeteer-extra';
+import puppeteerExtra from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
-import { log } from '../utils/logger.mjs';
+import { log } from '../utils/logger.js';
+import type { Browser } from 'puppeteer';
+import type { BrowserSession, ScrapeOptions } from '../types.js';
+import { errorMessage } from '../types.js';
+
+interface PuppeteerExtra {
+  use(plugin: unknown): void;
+  launch(options: Record<string, unknown>): Promise<Browser>;
+}
+
+const puppeteer = puppeteerExtra as unknown as PuppeteerExtra;
+const createAdblockerPlugin = AdblockerPlugin as unknown as (options: { blockTrackers: boolean }) => unknown;
 
 // Initialize Puppeteer with plugins
 puppeteer.use(StealthPlugin());
-puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
+puppeteer.use(createAdblockerPlugin({ blockTrackers: true }));
 
 // Browser Pool Configuration
 export const MAX_BROWSERS = 3;
@@ -13,13 +24,12 @@ export const MAX_PAGES_PER_BROWSER = 4;
 export const MAX_SCRAPES_PER_BROWSER = 50; // Recycle browser after this many scrapes
 export const IDLE_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
-/** @type {import('../remotescraper.mjs').BrowserSession[]} */
-export const sessions = [];
+export const sessions: BrowserSession[] = [];
 
 /**
  * Forcefully closes a browser session and removes it from the pool
  */
-export async function closeSession(session) {
+export async function closeSession(session: BrowserSession) {
   const index = sessions.indexOf(session);
   if (index > -1) sessions.splice(index, 1);
   
@@ -33,8 +43,8 @@ export async function closeSession(session) {
     if (session.browser && session.browser.connected) {
       await session.browser.close();
     }
-  } catch (e) {
-    log(`Error closing browser ${session.id}: ${e.message}`, 'ERROR');
+  } catch (error) {
+    log(`Error closing browser ${session.id}: ${errorMessage(error)}`, 'ERROR');
   }
 }
 
@@ -63,10 +73,10 @@ export function startWatchdog() {
 /**
  * Launches a new browser instance and initializes the session
  */
-export async function createNewSession(proxyUrl = null, userAgent = null) {
+export async function createNewSession(proxyUrl: string | null = null, userAgent: string | null = null): Promise<BrowserSession> {
   const id = `session_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
   
-  const session = {
+  const session: BrowserSession = {
     id,
     browser: null,
     launchPromise: null,
@@ -100,22 +110,22 @@ export async function createNewSession(proxyUrl = null, userAgent = null) {
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
     headless: 'new',
     args
-  }).then(b => {
-    session.browser = b;
+  }).then((browser: Browser) => {
+    session.browser = browser;
     session.launchPromise = null;
     
-    b.on('disconnected', () => {
+    browser.on('disconnected', () => {
       log(`Browser session ${session.id} disconnected`, 'WARN');
       const idx = sessions.indexOf(session);
       if (idx > -1) sessions.splice(idx, 1);
     });
 
-    return b;
-  }).catch(err => {
-    log(`Failed to launch browser for ${id}: ${err.message}`, 'ERROR');
+    return browser;
+  }).catch((error: unknown) => {
+    log(`Failed to launch browser for ${id}: ${errorMessage(error)}`, 'ERROR');
     const idx = sessions.indexOf(session);
     if (idx > -1) sessions.splice(idx, 1);
-    throw err;
+    throw error;
   });
 
   sessions.push(session);
@@ -125,7 +135,7 @@ export async function createNewSession(proxyUrl = null, userAgent = null) {
 /**
  * Finds or creates an available browser session.
  */
-export async function getBrowserSession(options = {}) {
+export async function getBrowserSession(options: ScrapeOptions = {}): Promise<BrowserSession | null> {
   const reqProxy = options.proxyUrl || null;
   const reqUA = options.userAgent || null;
   const forceNew = options.forceNewSession === true;

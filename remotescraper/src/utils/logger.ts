@@ -2,6 +2,8 @@
  * Enhanced logger with timestamp, levels, and context support
  */
 
+import type { LogContext } from '../types.js';
+
 const LEVELS = {
   DEBUG: 0,
   INFO: 1,
@@ -9,14 +11,19 @@ const LEVELS = {
   ERROR: 3
 };
 
-const CURRENT_LEVEL = process.env.LOG_LEVEL?.toUpperCase() || 'INFO';
-const MIN_LEVEL = LEVELS[CURRENT_LEVEL] !== undefined ? LEVELS[CURRENT_LEVEL] : LEVELS.INFO;
+type LogLevel = keyof typeof LEVELS;
+
+const CURRENT_LEVEL = process.env.LOG_LEVEL?.toUpperCase();
+const MIN_LEVEL = CURRENT_LEVEL && CURRENT_LEVEL in LEVELS
+  ? LEVELS[CURRENT_LEVEL as LogLevel]
+  : LEVELS.INFO;
 
 /**
  * Formatted logger with timestamp and optional context
  */
-export function log(message, type = 'INFO', context = {}) {
-  const levelValue = LEVELS[type.toUpperCase()] !== undefined ? LEVELS[type.toUpperCase()] : LEVELS.INFO;
+export function log(message: string, type: string = 'INFO', context: LogContext = {}) {
+  const requestedLevel = type.toUpperCase();
+  const levelValue = requestedLevel in LEVELS ? LEVELS[requestedLevel as LogLevel] : LEVELS.INFO;
   
   if (levelValue < MIN_LEVEL && !context.forceDebug) {
     return;

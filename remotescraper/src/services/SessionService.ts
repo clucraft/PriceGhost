@@ -1,18 +1,19 @@
-import { getBrowserSession, closeSession, sessions, MAX_BROWSERS } from '../core/SessionManager.mjs';
+import { getBrowserSession, closeSession, sessions, MAX_BROWSERS } from '../core/SessionManager.js';
+import type { BrowserSession, ScrapeOptions } from '../types.js';
 
 export class SessionService {
   /**
    * Acquires a browser session based on the provided options.
    */
-  static async acquireSession(options) {
-    return await getBrowserSession(options);
+  static acquireSession(options: ScrapeOptions): Promise<BrowserSession | null> {
+    return getBrowserSession(options);
   }
 
   /**
    * Releases/Closes a session.
    */
-  static async releaseSession(session) {
-    return await closeSession(session);
+  static releaseSession(session: BrowserSession): Promise<void> {
+    return closeSession(session);
   }
 
   /**
