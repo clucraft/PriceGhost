@@ -43,3 +43,11 @@ tmp/
 
 # TypeScript incremental build state
 *.tsbuildinfo
+
+# Ignore all agent runtime directories and state
+.agents/
+
+# Un-ignore shared configuration or prompts if needed
+!.agents/rules/
+!.agents/config.json
+
