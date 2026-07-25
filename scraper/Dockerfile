@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1.7
-# Remote scraper image. Build context is the REPOSITORY ROOT, not
-# ./remotescraper, because this is a pnpm workspace (package name:
+# Scraper image. Build context is the REPOSITORY ROOT, not
+# ./scraper, because this is a pnpm workspace (package name:
 # stealth-scraper) and the root workspace definition and lockfile are required
 # to resolve dependencies.
 #
-#   docker build -f remotescraper/Dockerfile .
+#   docker build -f scraper/Dockerfile .
 #
 # Self-contained: TypeScript is compiled here rather than copying a developer's
 # dist/ directory, so a clean checkout is all CI needs.
@@ -20,8 +20,8 @@ ARG BUILDPLATFORM
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY remotescraper/package.json ./remotescraper/
-COPY remotescraper/tsconfig.json ./remotescraper/
+COPY scraper/package.json ./scraper/
+COPY scraper/tsconfig.json ./scraper/
 
 # Chromium is installed via apt in the runtime stage, so Puppeteer must not
 # also download its own copy -- that would add several hundred MB per arch.
@@ -33,7 +33,7 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 RUN --mount=type=cache,id=pnpm-store-${BUILDPLATFORM},target=/pnpm/store \
     corepack enable && pnpm install --store-dir=/pnpm/store --frozen-lockfile --filter stealth-scraper...
 
-COPY remotescraper/src ./remotescraper/src
+COPY scraper/src ./scraper/src
 
 RUN pnpm --filter stealth-scraper run build
 
@@ -57,8 +57,8 @@ WORKDIR /app
 
 ARG TARGETPLATFORM
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY remotescraper/package.json ./remotescraper/
+COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=node:node scraper/package.json ./scraper/
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_SKIP_DOWNLOAD=true
@@ -66,12 +66,10 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 RUN --mount=type=cache,id=pnpm-store-${TARGETPLATFORM},target=/pnpm/store \
     corepack enable && pnpm install --store-dir=/pnpm/store --prod --frozen-lockfile --filter stealth-scraper...
 
-COPY --from=builder /app/remotescraper/dist ./remotescraper/dist
+COPY --chown=node:node --from=builder /app/scraper/dist ./scraper/dist
 
-RUN chown -R node:node /app
 USER node
-
-WORKDIR /app/remotescraper
+WORKDIR /app/scraper
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
     NODE_ENV=production \
@@ -79,4 +77,4 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
 
 EXPOSE 5100
 
-CMD ["node", "dist/remotescraper.js"]
+CMD ["node", "dist/scraper.js"]

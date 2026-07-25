@@ -14,7 +14,7 @@ async function run() {
     try {
       const res = await axios.post('http://192.168.50.200:3003/api/admin/debug/extract', {
         url,
-        config: { user_agent: ua, use_remote_scraper: true }
+        config: { user_agent: ua, use_browser_scraper: true }
       }, {
         headers: { Authorization: `Bearer ${TOKEN}` }
       });

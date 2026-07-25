@@ -8,7 +8,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
-      - 'remotescraper/**'
+      - 'scraper/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
@@ -30,7 +30,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
-      remotescraper: ${{ steps.filter.outputs.remotescraper }}
+      scraper: ${{ steps.filter.outputs.scraper }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -54,8 +54,8 @@ jobs:
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
               - '.github/workflows/docker-image.yml'
-            remotescraper:
-              - 'remotescraper/**'
+            scraper:
+              - 'scraper/**'
               - 'package.json'
               - 'pnpm-lock.yaml'
               - 'pnpm-workspace.yaml'
@@ -89,16 +89,16 @@ jobs:
       publish: true
       channel: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'beta' }}
 
-  publish-remotescraper:
+  publish-scraper:
     needs: changes
-    if: needs.changes.outputs.remotescraper == 'true' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
+    if: needs.changes.outputs.scraper == 'true' || github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/docker-image.yml
     permissions:
       contents: read
       packages: write
     with:
-      image: ghcr.io/${{ github.repository_owner }}/pricestalker-remotescraper
-      dockerfile: ./remotescraper/Dockerfile
-      cache-scope: remotescraper
+      image: ghcr.io/${{ github.repository_owner }}/pricestalker-scraper
+      dockerfile: ./scraper/Dockerfile
+      cache-scope: scraper
       publish: true
       channel: ${{ startsWith(github.ref, 'refs/tags/v') && 'stable' || 'beta' }}

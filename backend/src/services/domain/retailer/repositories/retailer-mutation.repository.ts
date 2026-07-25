@@ -12,16 +12,16 @@ export const retailerMutationRepository = {
     const domain = config.domain?.toLowerCase();
     const result = await executor.query(
       `INSERT INTO retailer_configs (
-         domain, name, status, status_history, use_proxy, use_browser, use_remote_scraper, is_js_heavy, currency_hint, 
+         domain, name, status, status_history, use_proxy, use_browser_scraper, currency_hint, 
          name_selectors, price_selectors, deal_price_selectors, member_price_selectors, image_selectors, stock_selectors,
          in_stock_phrases, out_of_stock_phrases, pre_order_phrases, pre_order_price_selectors, user_agent, custom_selectors, active, description,
          retailer_name_selectors, jsonld_image_key, jsonld_price_key, jsonld_name_key, original_price_selectors, ai_selectors, exclusion_selectors,
          selector_metadata
        )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
        ON CONFLICT (domain) DO UPDATE SET
          name = CASE 
-           WHEN $32 = true THEN EXCLUDED.name 
+           WHEN $30 = true THEN EXCLUDED.name 
            WHEN retailer_configs.name = INITCAP(SPLIT_PART(retailer_configs.domain, '.', 1)) THEN COALESCE(NULLIF(EXCLUDED.name, ''), retailer_configs.name)
            ELSE COALESCE(retailer_configs.name, NULLIF(EXCLUDED.name, '')) 
          END,
@@ -39,9 +39,7 @@ export const retailerMutationRepository = {
          END,
          status = COALESCE(EXCLUDED.status, retailer_configs.status),
          use_proxy = COALESCE(EXCLUDED.use_proxy, retailer_configs.use_proxy),
-         use_browser = COALESCE(EXCLUDED.use_browser, retailer_configs.use_browser),
-         use_remote_scraper = COALESCE(EXCLUDED.use_remote_scraper, retailer_configs.use_remote_scraper),
-         is_js_heavy = COALESCE(EXCLUDED.is_js_heavy, retailer_configs.is_js_heavy),
+         use_browser_scraper = COALESCE(EXCLUDED.use_browser_scraper, retailer_configs.use_browser_scraper),
          currency_hint = COALESCE(EXCLUDED.currency_hint, retailer_configs.currency_hint),
          name_selectors = CASE WHEN EXCLUDED.name_selectors = '[]'::jsonb THEN retailer_configs.name_selectors ELSE EXCLUDED.name_selectors END,
          retailer_name_selectors = CASE WHEN EXCLUDED.retailer_name_selectors = '[]'::jsonb THEN retailer_configs.retailer_name_selectors ELSE EXCLUDED.retailer_name_selectors END,
@@ -73,9 +71,7 @@ export const retailerMutationRepository = {
         config.status || null,
         JSON.stringify(config.status_history || (config.status ? [{ status: config.status, timestamp: new Date().toISOString() }] : [])),
         config.use_proxy !== undefined ? config.use_proxy : null,
-        config.use_browser !== undefined ? config.use_browser : null,
-        config.use_remote_scraper !== undefined ? config.use_remote_scraper : null,
-        config.is_js_heavy !== undefined ? config.is_js_heavy : null,
+        config.use_browser_scraper !== undefined ? config.use_browser_scraper : null,
         config.currency_hint || null,
         JSON.stringify(config.name_selectors || []),
         JSON.stringify(config.price_selectors || []),

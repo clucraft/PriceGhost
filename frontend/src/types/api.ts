@@ -188,9 +188,7 @@ export interface RetailerConfig {
   name: string | null;
   status: string | null;
   use_proxy: boolean;
-  use_browser: boolean;
-  use_remote_scraper: boolean;
-  is_js_heavy: boolean;
+  use_browser_scraper: boolean;
   currency_hint: string | null;
   name_selectors: string[];
   retailer_name_selectors: string[];

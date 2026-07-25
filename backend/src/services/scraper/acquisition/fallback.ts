@@ -47,7 +47,7 @@ export async function handleAcquisitionFallback(options: FallbackOptions): Promi
       extractionSteps.push(`Scraper | Fallback | Remote Success`);
       $ = load(html);
       finalChallengeReason = detectBotChallenge(html, $);
-      if (!finalChallengeReason) learnedFlags = { use_remote_scraper: true, is_js_heavy: true };
+      if (!finalChallengeReason) learnedFlags = { use_browser_scraper: true };
       
       return { html, $, challengeReason: finalChallengeReason, learnedFlags };
     } catch (e) {
@@ -64,7 +64,7 @@ export async function handleAcquisitionFallback(options: FallbackOptions): Promi
       if (html) {
         $ = load(html);
         finalChallengeReason = detectBotChallenge(html, $);
-        if (!finalChallengeReason) learnedFlags = { use_browser: true, is_js_heavy: true };
+        if (!finalChallengeReason) learnedFlags = { use_browser_scraper: true };
         return { html, $, challengeReason: finalChallengeReason, learnedFlags };
       }
     } catch (e) {

@@ -86,13 +86,13 @@ services:
       - backend
 
   # Optional stealth scraper. Only needed for retailers configured with
-  # `use_remote_scraper`; the backend falls back to in-process scraping without
-  # it. Start with: docker compose --profile remotescraper up -d
-  remotescraper:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-mikeknight85}/pricestalker-remotescraper:${IMAGE_TAG:-latest}
-    container_name: pricestalker-remotescraper
+  # `use_browser_scraper`; the backend falls back to in-process scraping without
+  # it. Start with: docker compose --profile scraper up -d
+  scraper:
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_NAMESPACE:-mikeknight85}/pricestalker-scraper:${IMAGE_TAG:-latest}
+    container_name: pricestalker-scraper
     restart: unless-stopped
-    profiles: ["remotescraper"]
+    profiles: ["scraper"]
     # Chromium needs more than the default 64MB of shared memory or it will
     # crash on content-heavy pages.
     shm_size: 2gb

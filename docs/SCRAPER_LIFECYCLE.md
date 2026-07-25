@@ -43,14 +43,14 @@ Phase 6: runVerificationPhase → Optional AI cross-verification of selected pri
 1. **Standard Axios fetch** — Uses configured headers, optional proxy, and circuit-breaker backoff.
 2. **Soft-404 detection** — Checks for redirect-to-homepage, title-mismatch, robots.txt exclusion.
 3. **Bot-challenge detection** — Flags Imperva/Cloudflare challenge responses.
-4. **Remote Puppeteer fallback** (the `remotescraper` service) — If standard request fails or `use_remote_scraper=true`, renders via stealth browser. On success, sets `use_remote_scraper=true` in config for future runs.
+4. **Remote Puppeteer fallback** (the `scraper` service) — If standard request fails or `use_browser_scraper=true`, renders via stealth browser. On success, sets `use_browser_scraper=true` in config for future runs.
 
-> **When to use the remote scraper:** Enable `use_remote_scraper` per-retailer (Admin > Retailer Settings) for sites that:
+> **When to use the browser scraper:** Enable `use_browser_scraper` per-retailer (Admin > Retailer Settings) for sites that:
 > - Require JavaScript execution to render prices (React/Vue SPAs, lazy-loaded price elements)
 > - Are behind CDN bot-protection such as Cloudflare or Imperva that blocks plain HTTP requests
 > - Return incomplete or challenge HTML to standard `axios` fetches
 >
-> The `Remote Scraper URL` system setting (Admin > Settings) must point to the running `remotescraper` container before per-retailer flags take effect.
+> The `Remote Scraper URL` system setting (Admin > Settings) must point to the running `scraper` container before per-retailer flags take effect.
 
 > **URL cleaning:** `cleanUrl()` in `urlHelper.ts` strips UTM/affiliate/tracking parameters before lookup and storage. 
 > **Known quirk:** The hash-stripping logic uses `.includes(k)` against KEEP_LIST, meaning single-char entries like `'v'` match fragments like `#reviews` — documented in `url-helper.test.ts`. upstream audit issue **U-1**.

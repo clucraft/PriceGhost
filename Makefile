@@ -32,11 +32,11 @@ BUILD_PLATFORM ?= linux/$(BUILD_ARCH)
 IMAGE_REPOSITORY := $(IMAGE_REGISTRY)/$(IMAGE_NAMESPACE)
 BACKEND_IMAGE := $(IMAGE_REPOSITORY)/pricestalker-backend:$(IMAGE_TAG)
 FRONTEND_IMAGE := $(IMAGE_REPOSITORY)/pricestalker-frontend:$(IMAGE_TAG)
-REMOTESCRAPER_IMAGE := $(IMAGE_REPOSITORY)/pricestalker-remotescraper:$(IMAGE_TAG)
+SCRAPER_IMAGE := $(IMAGE_REPOSITORY)/pricestalker-scraper:$(IMAGE_TAG)
 
 .DEFAULT_GOAL := help
 
-.PHONY: help check-tools check-env build build-backend build-frontend build-remotescraper up up-remotescraper down status logs logs-backend logs-frontend verify diagrams
+.PHONY: help check-tools check-env build build-backend build-frontend build-scraper up up-scraper down status logs logs-backend logs-frontend verify diagrams
 
 define build_image
 	@if docker buildx version >/dev/null 2>&1; then \
@@ -77,14 +77,14 @@ build-backend: check-tools ## Build the local backend image.
 build-frontend: check-tools ## Build the local frontend image.
 	$(call build_image,$(FRONTEND_IMAGE),frontend/Dockerfile)
 
-build-remotescraper: check-tools ## Build the optional local remote-scraper image.
-	$(call build_image,$(REMOTESCRAPER_IMAGE),remotescraper/Dockerfile)
+build-scraper: check-tools ## Build the optional local scraper image.
+	$(call build_image,$(SCRAPER_IMAGE),scraper/Dockerfile)
 
 up: check-env build ## Build and start the local stack on FRONTEND_PORT (default: 8080).
 	IMAGE_REGISTRY=$(IMAGE_REGISTRY) IMAGE_NAMESPACE=$(IMAGE_NAMESPACE) IMAGE_TAG=$(IMAGE_TAG) FRONTEND_PORT=$(FRONTEND_PORT) docker compose up -d
 
-up-remotescraper: check-env build build-remotescraper ## Start the stack with the optional remote scraper.
-	IMAGE_REGISTRY=$(IMAGE_REGISTRY) IMAGE_NAMESPACE=$(IMAGE_NAMESPACE) IMAGE_TAG=$(IMAGE_TAG) FRONTEND_PORT=$(FRONTEND_PORT) docker compose --profile remotescraper up -d
+up-scraper: check-env build build-scraper ## Start the stack with the optional browser scraper.
+	IMAGE_REGISTRY=$(IMAGE_REGISTRY) IMAGE_NAMESPACE=$(IMAGE_NAMESPACE) IMAGE_TAG=$(IMAGE_TAG) FRONTEND_PORT=$(FRONTEND_PORT) docker compose --profile scraper up -d
 
 down: ## Stop the stack while preserving database and application volumes.
 	docker compose down

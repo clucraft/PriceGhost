@@ -49,9 +49,7 @@ The central registry of tracked items across all users.
 Houses the extraction selectors and custom routing rules. **Strictly no retailer logic is hardcoded in backend services.**
 * **Key Fields**:
  - `domain` (unique primary lookup key, e.g. `jbhifi.com.au`).
- - `use_remote_scraper`: Forces offloading browser-rendering requests to the `remotescraper` service.
- - `use_browser`: Redundant, use `use_remote_scraper`.
- - `is_js_heavy`: Redundant, use `use_remote_scraper`.
+ - `use_browser_scraper`: Forces offloading browser-rendering requests to the `scraper` service.
  - `currency_hint`: Default fallback currency for parser.
  - **JSONB Arrays**: Standardized selectors for `name_selectors`, `price_selectors`, `deal_price_selectors`, `member_price_selectors`, `image_selectors`, `stock_selectors`, `pre_order_price_selectors`.
  - `user_agent` & `referrer`: Request headers configuration overrides.

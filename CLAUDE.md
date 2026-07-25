@@ -14,7 +14,7 @@ context.
 PriceStalker is a self-hosted price tracker: a TypeScript/Express backend, a
 React/Vite frontend, an optional stealth Puppeteer remote scraper (for JS-heavy
 sites or retailers behind CDN/bot protection), and PostgreSQL.
-It is a pnpm workspace (`backend`, `frontend`, `remotescraper`).
+It is a pnpm workspace (`backend`, `frontend`, `scraper`).
 
 ---
 

@@ -28,10 +28,9 @@ export async function acquireRemoteHtml(options: RemoteAcquisitionOptions): Prom
 
   try {
     const useProxy = domainConfig?.use_proxy || false;
-    const isJSHeavy = domainConfig?.is_js_heavy || false;
-    const useBrowser = domainConfig?.use_browser || false;
+    const useBrowserScraper = domainConfig?.use_browser_scraper || false;
     
-    logger.info(`Scraper | Remote | Requesting ${domain} (Browser: ${isJSHeavy || useBrowser})`, 'Scraper');
+    logger.info(`Scraper | Remote | Requesting ${domain} (Browser: ${useBrowserScraper})`, 'Scraper');
     extractionSteps.push(`Scraper | Remote | Requesting via ${rsUrl}`);
     
     const isDiscovery = !productId;

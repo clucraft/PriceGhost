@@ -2,7 +2,7 @@
   "name": "stealth-scraper",
   "version": "1.0.36",
   "description": "Bulletproof Puppeteer scraper with stealth and adblocker",
-  "main": "dist/remotescraper.js",
+  "main": "dist/scraper.js",
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",

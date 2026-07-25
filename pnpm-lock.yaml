@@ -146,7 +146,7 @@ importers:
         specifier: 8.1.5
         version: 8.1.5(@types/node@20.19.39)(esbuild@0.27.7)(jiti@1.21.7)(tsx@4.21.0)
 
-  remotescraper:
+  scraper:
     dependencies:
       axios:
         specifier: 1.14.0

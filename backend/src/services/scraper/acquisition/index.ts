@@ -31,11 +31,10 @@ export async function acquireHtml(options: AcquisitionOptions): Promise<Acquisit
   let challengeReason: string | null = null;
   let usedRemoteFallback = false;
 
-  const requiresBrowser = domainConfig?.is_js_heavy || domainConfig?.use_browser || false;
-  const useRemoteScraper = domainConfig?.use_remote_scraper || false;
+  const useBrowserScraper = domainConfig?.use_browser_scraper || false;
 
   // --- Attempt 1: Remote/Browser (if configured) ---
-  if (useRemoteScraper || requiresBrowser) {
+  if (useBrowserScraper) {
     usedRemoteFallback = true;
     const remoteHtml = await acquireRemoteHtml(options);
     if (remoteHtml) {

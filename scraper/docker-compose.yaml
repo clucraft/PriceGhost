@@ -1,9 +1,9 @@
 services:
-  remotescraper:
+  scraper:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: pricestalker-remotescraper
+    container_name: pricestalker-scraper
     restart: unless-stopped
     environment:
       - PORT=5100

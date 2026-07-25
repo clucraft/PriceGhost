@@ -27,7 +27,7 @@ PriceStalker V2 utilizes a monorepo workspace managed with pnpm, separating comp
 │   │   ├── features/       # Feature-sliced aggregates (admin, products, auth)
 │   │   │   └── <feature>/  # Each feature folder bundles its pages, hooks, & services
 │   │   └── utils/          # Null-safe locale and date formatters
-├── remotescraper/          # Optional stealth Chromium container (Puppeteer) for JS-heavy sites
+├── scraper/                # Optional stealth Chromium container (Puppeteer) for JS-heavy sites
 │                           #   or retailers behind CDN/bot protection (e.g. Cloudflare, Imperva).
 │                           #   Enabled per-retailer via the Admin UI. Requires `Remote Scraper URL`
 │                           #   to be configured in Admin > Settings.
@@ -70,7 +70,7 @@ Use these commands to manage your local container stack:
 * **`make status`**: View container status and port mappings.
 * **`make logs`**: Stream all container logs.
 * **`make logs-backend`**: Stream logs for the backend container only.
-* **`make up-remotescraper`**: Start the stack including the optional remote Chromium scraper.
+* **`make up-scraper`**: Start the stack including the optional browser scraper.
 * **`make down`**: Stop and remove active containers (preserves database volumes).
 
 ### Building with Custom Registries
@@ -129,7 +129,7 @@ You can trigger live scraper trace runs without committing database changes usin
     "url": "https://www.example.com/product",
     "mode": "scraper",
     "config": {
-      "use_remote_scraper": false
+      "use_browser_scraper": false
     },
     "use_ai": true,
     "returnHtml": false

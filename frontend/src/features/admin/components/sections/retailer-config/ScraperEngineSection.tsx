@@ -11,17 +11,10 @@ export default function ScraperEngineSection({ draftConfig, onUpdateConfig }: Sc
     <div className="scraper-engine-section">
       <div className="form-grid" style={{ background: 'var(--surface)', padding: '1rem', borderRadius: '0.5rem', border: '1px solid var(--border)', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-          <span>Browser Engine</span>
+          <span>Use Browser Scraper</span>
           <ToggleSwitch 
-            active={!!draftConfig.use_browser} 
-            onToggle={() => onUpdateConfig({ use_browser: !draftConfig.use_browser })} 
-          />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-          <span>Javascript Rendering</span>
-          <ToggleSwitch 
-            active={!!draftConfig.is_js_heavy} 
-            onToggle={() => onUpdateConfig({ is_js_heavy: !draftConfig.is_js_heavy })} 
+            active={!!draftConfig.use_browser_scraper} 
+            onToggle={() => onUpdateConfig({ use_browser_scraper: !draftConfig.use_browser_scraper })} 
           />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
@@ -29,13 +22,6 @@ export default function ScraperEngineSection({ draftConfig, onUpdateConfig }: Sc
           <ToggleSwitch 
             active={!!draftConfig.use_proxy} 
             onToggle={() => onUpdateConfig({ use_proxy: !draftConfig.use_proxy })} 
-          />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-          <span>Remote Offloading</span>
-          <ToggleSwitch 
-            active={!!draftConfig.use_remote_scraper} 
-            onToggle={() => onUpdateConfig({ use_remote_scraper: !draftConfig.use_remote_scraper })} 
           />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>

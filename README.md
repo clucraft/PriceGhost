@@ -188,19 +188,19 @@ start without them rather than falling back to a built-in default, which would
 mean every deployment shared one database password and one session-signing key.
 Generate a secret with `openssl rand -base64 48`.
 
-The optional stealth scraper (see [Remote scraper](#remote-scraper)) is off by
+The optional stealth scraper (see [Browser scraper](#browser-scraper)) is off by
 default:
 
 ```bash
-docker compose --profile remotescraper up -d
+docker compose --profile scraper up -d
 ```
 
-### Remote scraper
+### Browser scraper
 
 Some retailers block ordinary scraping, require heavy JavaScript/CSS execution to render prices, or sit behind CDN/bot protection (such as Cloudflare or Imperva). 2.0 can offload those pages to a separate container running a stealth browser with a pooled, recycled Chromium instance. The backend scrapes in-process without it, so it is entirely optional.
 
 Once running, set the URL in **Admin → System → Network & Integration** to
-`http://remotescraper:5100/scrape`, then enable it per domain in
+`http://scraper:5100/scrape`, then enable it per domain in
 **Admin → Retailers**.
 
 ### Upgrading to 2.0

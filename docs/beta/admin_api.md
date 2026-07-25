@@ -125,7 +125,7 @@ All PriceStalker endpoints are grouped by resource type. The Base URL is `/api`.
  "url": "https://www.example.com/product",
  "mode": "scraper",
  "config": {
- "use_remote_scraper": false
+ "use_browser_scraper": false
  },
  "use_ai": true,
  "returnHtml": false
@@ -133,7 +133,7 @@ All PriceStalker endpoints are grouped by resource type. The Base URL is `/api`.
 ```
 
 * **`mode`**: Choose `"scraper"` (run full pipeline) or `"bypass"` (run direct local axios request).
-* **`config`**: Override scraper configs (e.g. `use_remote_scraper`, `use_proxy`).
+* **`config`**: Override scraper configs (e.g. `use_browser_scraper`, `use_proxy`).
 * **`use_ai`**: Set to `true` to allow AI extraction fallback on failure.
 * **`returnHtml`**: Set to `true` to return the raw HTML string inside the response payload.
 </details>

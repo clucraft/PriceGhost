@@ -59,7 +59,7 @@ export async function handleAutoMapping(
         `Name: ${upsertData.name || 'Unknown'}`,
         `Domain: ${upsertData.domain}`,
         `Currency Hint: ${upsertData.currency_hint || 'None'}`,
-        `Engine: ${upsertData.use_remote_scraper ? 'Remote Scraper' : (upsertData.use_browser ? 'Browser' : 'Standard (HTTP)')}`
+        `Engine: ${upsertData.use_browser_scraper ? 'Browser Scraper' : 'Standard (HTTP)'}`
       ];
       if (upsertData.name_selectors?.length > 0) autoMapTrace.push(`Name Selectors: ${JSON.stringify(upsertData.name_selectors)}`);
       if (upsertData.price_selectors?.length > 0) autoMapTrace.push(`Price Selectors: ${JSON.stringify(upsertData.price_selectors)}`);
@@ -79,7 +79,6 @@ export async function handleAutoMapping(
 
       const settingsList = [];
       if (upsertData.use_proxy) settingsList.push('Proxy');
-      if (upsertData.is_js_heavy) settingsList.push('JS Heavy');
       if (settingsList.length > 0) {
         autoMapTrace.push(`Settings: ${settingsList.join(', ')}`);
       }

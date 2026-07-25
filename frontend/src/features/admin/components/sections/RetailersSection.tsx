@@ -40,8 +40,7 @@ export default function RetailersSection({ globalCurrencies, initialSearch }: Re
       name: '',
       status: 'OK',
       use_proxy: false, 
-      use_browser: false,
-      is_js_heavy: false,
+      use_browser_scraper: false,
       currency_hint: null,
       active: true,
       description: ''
@@ -124,10 +123,8 @@ export default function RetailersSection({ globalCurrencies, initialSearch }: Re
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>{r.domain}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.7rem' }}>
-                <div style={{ opacity: r.use_browser ? 1 : 0.3 }}><Icon name="globe" /> Browser</div>
+                <div style={{ opacity: r.use_browser_scraper ? 1 : 0.3 }}><Icon name="globe" /> Browser Scraper</div>
                 <div style={{ opacity: r.use_proxy ? 1 : 0.3 }}><Icon name="shield" /> Proxy</div>
-                <div style={{ opacity: r.is_js_heavy ? 1 : 0.3 }}><Icon name="zap" /> JS Heavy</div>
-                <div style={{ opacity: r.use_remote_scraper ? 1 : 0.3 }}><Icon name="cloud" /> Remote</div>
               </div>
             </div>
           ))}

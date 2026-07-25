@@ -16,7 +16,7 @@ When you paste a product URL into PriceStalker (e.g., `https://example.com/produ
 To read prices, PriceStalker first has to download the product web page:
 
 * **Standard HTTP Fetch**: The system tries to load the page as fast and lightweight as possible using standard request tools.
-* **Remote Stealth Browser Fallback**: If a store blocks basic requests (like Cloudflare or bot protection screens), PriceStalker automatically spins up a background stealth browser (`remotescraper`). This stealth browser mimics a real human user looking at the screen to read the page content.
+* **Remote Stealth Browser Fallback**: If a store blocks basic requests (like Cloudflare or bot protection screens), PriceStalker automatically spins up a background stealth browser (`scraper`). This stealth browser mimics a real human user looking at the screen to read the page content.
 
 ---
 

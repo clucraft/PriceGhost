@@ -1,7 +1,7 @@
 packages:
   - backend
   - frontend
-  - remotescraper
+  - scraper
 
 # TypeScript declaration emission must reference portable paths; the default
 # isolated linker exposes pnpm virtual-store paths in inferred Express types.

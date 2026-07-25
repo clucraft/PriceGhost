@@ -24,7 +24,7 @@ export class RetailerMutationService {
       `Name: ${updated.name || 'Unknown'}`,
       `Domain: ${updated.domain}`,
       `Active: ${updated.active ? 'Yes' : 'No'}`,
-      `Engine: ${updated.use_remote_scraper ? 'Remote Scraper' : (updated.use_browser ? 'Browser' : 'Standard (HTTP)')}`
+      `Engine: ${updated.use_browser_scraper ? 'Browser Scraper' : 'Standard (HTTP)'}`
     ];
     if (updated.name_selectors?.length > 0) manualTrace.push(`Name Selectors: ${JSON.stringify(updated.name_selectors)}`);
     if (updated.price_selectors?.length > 0) manualTrace.push(`Price Selectors: ${JSON.stringify(updated.price_selectors)}`);
@@ -45,7 +45,6 @@ export class RetailerMutationService {
 
     const settingsList = [];
     if (updated.use_proxy) settingsList.push('Proxy');
-    if (updated.is_js_heavy) settingsList.push('JS Heavy');
     if (settingsList.length > 0) {
       manualTrace.push(`Settings: ${settingsList.join(', ')}`);
     }

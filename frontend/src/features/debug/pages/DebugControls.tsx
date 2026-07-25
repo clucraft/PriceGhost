@@ -142,8 +142,7 @@ export default function DebugControls({ state, actions, children }: DebugControl
 
               <div className="toggle-grid mb-3" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <label className="toggle-label" style={{ whiteSpace: 'nowrap', minWidth: '80px' }}><input type="checkbox" checked={config.use_proxy || false} onChange={e => setConfig({...config, use_proxy: e.target.checked})} /> Proxy</label>
-                <label className="toggle-label" style={{ whiteSpace: 'nowrap', minWidth: '80px' }}><input type="checkbox" checked={config.is_js_heavy || false} onChange={e => setConfig({...config, is_js_heavy: e.target.checked})} /> JS-Heavy</label>
-                <label className="toggle-label" style={{ whiteSpace: 'nowrap', minWidth: '100px' }}><input type="checkbox" checked={config.use_remote_scraper || false} onChange={e => setConfig({...config, use_remote_scraper: e.target.checked})} /> Force Remote</label>
+                <label className="toggle-label" style={{ whiteSpace: 'nowrap', minWidth: '120px' }}><input type="checkbox" checked={config.use_browser_scraper || false} onChange={e => setConfig({...config, use_browser_scraper: e.target.checked})} /> Browser Scraper</label>
               </div>
               
               {children}
