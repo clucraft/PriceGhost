@@ -1,0 +1,8 @@
+# Automatic HTTPS for geist.online.
+# Caddy obtains and renews Let's Encrypt certificates automatically.
+# Requires: DNS A/AAAA records for geist.online (and www) pointing at the VPS,
+# and ports 80 + 443 open in the Strato firewall.
+geist.online, www.geist.online {
+	encode gzip
+	reverse_proxy frontend:80
+}

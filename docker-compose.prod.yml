@@ -1,0 +1,66 @@
+# Production stack for the Strato VPS.
+# Only Caddy publishes host ports (80/443); everything else stays on the internal network.
+# Usage on the VPS:  docker compose -f docker-compose.prod.yml up -d
+# Image tags are pinned per-deploy via IMAGE_TAG (short commit SHA); defaults to latest.
+services:
+  # PostgreSQL Database (persistent, never exposed to the host)
+  postgres:
+    image: postgres:16-alpine
+    container_name: geist-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Backend API
+  backend:
+    image: ghcr.io/geist-app/geist-backend:${IMAGE_TAG:-latest}
+    container_name: geist-backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      PORT: 3001
+      NODE_ENV: production
+      # Reported by GET /info and /api/info so we can see which commit is live.
+      APP_VERSION: ${IMAGE_TAG:-dev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend (nginx serves the SPA and proxies /api -> backend)
+  frontend:
+    image: ghcr.io/geist-app/geist-frontend:${IMAGE_TAG:-latest}
+    container_name: geist-frontend
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # Reverse proxy with automatic HTTPS (Let's Encrypt) for geist.online
+  caddy:
+    image: caddy:2-alpine
+    container_name: geist-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

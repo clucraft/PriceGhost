@@ -1,26 +1,23 @@
-name: Build and Push Docker Images
+name: Build, Test and Deploy
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/docker-build.yml'
   pull_request:
     branches: [main]
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/priceghost-backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/priceghost-frontend
+  BACKEND_IMAGE: ghcr.io/geist-app/geist-backend
+  FRONTEND_IMAGE: ghcr.io/geist-app/geist-frontend
 
 jobs:
-  # Detect which paths changed
+  # Detect which paths changed (used to skip builds on PRs only).
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -40,9 +37,37 @@ jobs:
             frontend:
               - 'frontend/**'
 
+  # Build/typecheck both apps. This is the test gate for pushing images.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build & typecheck backend
+        working-directory: ./backend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build & typecheck frontend
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm run build
+
   build-backend:
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    needs: [changes, test]
+    # Always build on push to main and manual runs; on PRs only when backend changed.
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -69,8 +94,7 @@ jobs:
         with:
           images: ${{ env.BACKEND_IMAGE }}
           tags: |
-            type=ref,event=branch
-            type=sha,prefix=
+            type=sha,prefix=,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Backend image
@@ -84,8 +108,11 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-frontend:
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+    needs: [changes, test]
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -112,8 +139,7 @@ jobs:
         with:
           images: ${{ env.FRONTEND_IMAGE }}
           tags: |
-            type=ref,event=branch
-            type=sha,prefix=
+            type=sha,prefix=,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Frontend image
@@ -125,3 +151,27 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Deploy to the Strato VPS on merge/push into main.
+  deploy:
+    needs: [build-backend, build-frontend]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute short SHA
+        id: vars
+        run: echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_SSH_PORT || 22 }}
+          envs: IMAGE_TAG
+          script: |
+            cd /opt/geist
+            bash scripts/deploy.sh
+        env:
+          IMAGE_TAG: ${{ steps.vars.outputs.sha }}

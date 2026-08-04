@@ -1,0 +1,6 @@
+# Ensure shell scripts and container config always use LF, so they run on the
+# Linux VPS regardless of the checkout platform.
+*.sh        text eol=lf
+Caddyfile   text eol=lf
+Dockerfile  text eol=lf
+*.yml       text eol=lf

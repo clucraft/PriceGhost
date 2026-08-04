@@ -23,7 +23,7 @@ services:
 
   # Backend API
   backend:
-    image: ghcr.io/clucraft/priceghost-backend:latest
+    image: ghcr.io/geist-app/geist-backend:latest
     container_name: priceghost-backend
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/priceghost
@@ -39,7 +39,7 @@ services:
 
   # Frontend
   frontend:
-    image: ghcr.io/clucraft/priceghost-frontend:latest
+    image: ghcr.io/geist-app/geist-frontend:latest
     container_name: priceghost-frontend
     ports:
       - "80:80"

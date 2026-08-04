@@ -264,6 +264,15 @@ app.get('/health', (_, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Version/info endpoint - reports the currently deployed commit hash.
+// APP_VERSION is injected at runtime by docker-compose (= IMAGE_TAG = short commit SHA).
+const infoHandler = (_req: express.Request, res: express.Response) => {
+  res.json({ version: process.env.APP_VERSION || 'dev' });
+};
+app.get('/info', infoHandler);
+// Also exposed under /api so it is reachable through the nginx/Caddy /api proxy.
+app.get('/api/info', infoHandler);
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
