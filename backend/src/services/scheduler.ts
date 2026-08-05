@@ -105,8 +105,11 @@ async function checkPrices(): Promise<void> {
           // Get the latest recorded price to compare
           const latestPrice = await priceHistoryQueries.getLatest(product.id);
 
-          // Only record if price has changed or it's the first entry
-          if (!latestPrice || latestPrice.price !== scrapedData.price.price) {
+          // Only record if price has changed or it's the first entry.
+          // latestPrice.price comes back from pg as a string (DECIMAL), while
+          // scrapedData.price.price is a number, so a raw !== is always true;
+          // coerce first (as the notification checks below already do).
+          if (!latestPrice || parseFloat(String(latestPrice.price)) !== scrapedData.price.price) {
             // Check for price drop notification before recording
             if (latestPrice && product.price_drop_threshold) {
               const oldPrice = parseFloat(String(latestPrice.price));
