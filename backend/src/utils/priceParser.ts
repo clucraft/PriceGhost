@@ -17,10 +17,14 @@ const currencyMap: Record<string, string> = {
   'USD': 'USD',
   'EUR': 'EUR',
   'GBP': 'GBP',
+  'R$': 'BRL',
+  'BRL': 'BRL',
 };
 
 // Patterns to match prices in text
 const pricePatterns = [
+  // R$29.99 or R$ 1.234,56 (Brazilian Real, comma decimal + dot thousands)
+  /(?<currency>R\$)\s*(?<price>(?:\d{1,3}(?:[.,\s]\d{3})*|\d+)(?:[.,]\d{1,2})?)/i,
   // $29.99 or $29,99 or $ 29.99
   /(?<currency>[$€£¥₹])\s*(?<price>[\d,]+\.?\d*)/,
   // CHF 29.99 or Fr. 29.99 (Swiss franc prefix)
@@ -107,7 +111,7 @@ export function extractPricesFromText(html: string): ParsedPrice[] {
 
   // Match all price-like patterns in the HTML
   const allMatches = html.matchAll(
-    /(?:[$€£¥₹])\s*[\d,]+\.?\d*|(?:CHF|Fr\.)\s*[\d,]+\.?\d*|[\d,]+\.?\d*\s*(?:USD|EUR|GBP|CAD|AUD|CHF)/gi
+    /(?:[$€£¥₹]|R\$)\s*[\d,]+\.?\d*|(?:CHF|Fr\.)\s*[\d,]+\.?\d*|[\d,]+\.?\d*\s*(?:USD|EUR|GBP|CAD|AUD|CHF)/gi
   );
 
   for (const match of allMatches) {

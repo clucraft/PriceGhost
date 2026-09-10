@@ -120,12 +120,13 @@ export const productsApi = {
 
   getById: (id: number) => api.get<ProductWithStats>(`/products/${id}`),
 
-  create: (url: string, refreshInterval?: number, selectedPrice?: number, selectedMethod?: string) =>
+  create: (url: string, refreshInterval?: number, selectedPrice?: number, selectedMethod?: string, selectedCurrency?: string) =>
     api.post<CreateProductResponse>('/products', {
       url,
       refresh_interval: refreshInterval,
       selectedPrice,
       selectedMethod,
+      selectedCurrency,
     }),
 
   update: (id: number, data: {

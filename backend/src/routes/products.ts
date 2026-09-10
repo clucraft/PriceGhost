@@ -24,7 +24,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId!;
-    const { url, refresh_interval, selectedPrice, selectedMethod } = req.body;
+    const { url, refresh_interval, selectedPrice, selectedMethod, selectedCurrency } = req.body;
 
     if (!url) {
       res.status(400).json({ error: 'URL is required' });
@@ -61,11 +61,12 @@ router.post('/', async (req: AuthRequest, res: Response) => {
       await productQueries.updateAnchorPrice(product.id, selectedPrice);
       console.log(`[Products] Saved anchor price ${selectedPrice} for product ${product.id} (method: ${selectedMethod})`);
 
-      // Record the user-selected price
+      // Record the user-selected price. Prefer the currency of the candidate
+      // the user actually picked, falling back to the scraped price's currency.
       await priceHistoryQueries.create(
         product.id,
         selectedPrice,
-        'USD', // TODO: Get currency from selection
+        selectedCurrency || scrapedData.price?.currency || 'USD',
         null
       );
 
