@@ -10,6 +10,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { PriceHistory } from '../api/client';
+import { formatPrice } from '../utils/formatPrice';
 
 const getThemeColors = () => {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -58,9 +59,6 @@ export default function PriceChart({
     onRangeChange?.(days);
   };
 
-  const currencySymbol =
-    currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'CHF' ? 'CHF ' : '$';
-
   const chartData = prices.map((p) => ({
     date: new Date(p.recorded_at).getTime(),
     price: typeof p.price === 'string' ? parseFloat(p.price) : p.price,
@@ -78,9 +76,9 @@ export default function PriceChart({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const formatPrice = (value: number) => {
+  const formatPriceValue = (value: number) => {
     if (value === null || value === undefined || isNaN(value)) return 'N/A';
-    return `${currencySymbol}${value.toFixed(2)}`;
+    return formatPrice(value, currency);
   };
 
   if (prices.length === 0) {
@@ -227,13 +225,13 @@ export default function PriceChart({
               fontSize={12}
             />
             <YAxis
-              tickFormatter={formatPrice}
+              tickFormatter={formatPriceValue}
               stroke={themeColors.text}
               fontSize={12}
               domain={['auto', 'auto']}
             />
             <Tooltip
-              formatter={(value: number) => [formatPrice(value), 'Price']}
+              formatter={(value: number) => [formatPriceValue(value), "Price"]}
               labelFormatter={(label) =>
                 new Date(label).toLocaleDateString('en-US', {
                   weekday: 'short',
@@ -271,15 +269,15 @@ export default function PriceChart({
       <div className="price-chart-stats">
         <div className="price-stat">
           <div className="price-stat-label">Lowest</div>
-          <div className="price-stat-value min">{formatPrice(minPrice)}</div>
+          <div className="price-stat-value min">{formatPriceValue(minPrice)}</div>
         </div>
         <div className="price-stat">
           <div className="price-stat-label">Average</div>
-          <div className="price-stat-value avg">{formatPrice(avgPrice)}</div>
+          <div className="price-stat-value avg">{formatPriceValue(avgPrice)}</div>
         </div>
         <div className="price-stat">
           <div className="price-stat-label">Highest</div>
-          <div className="price-stat-value max">{formatPrice(maxPrice)}</div>
+          <div className="price-stat-value max">{formatPriceValue(maxPrice)}</div>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import PriceChart from '../components/PriceChart';
 import StockTimeline from '../components/StockTimeline';
 import AIStatusBadge from '../components/AIStatusBadge';
+import { formatPrice as formatPriceValue } from '../utils/formatPrice';
 import { useToast } from '../context/ToastContext';
 import {
   productsApi,
@@ -166,9 +167,7 @@ export default function ProductDetail() {
     if (price === null || price === undefined) return 'N/A';
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     if (isNaN(numPrice)) return 'N/A';
-    const currencySymbol =
-      currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'CHF' ? 'CHF ' : '$';
-    return `${currencySymbol}${numPrice.toFixed(2)}`;
+    return formatPriceValue(numPrice, currency);
   };
 
   if (isLoading) {

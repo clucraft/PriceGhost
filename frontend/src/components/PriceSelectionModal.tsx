@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatPrice } from '../utils/formatPrice';
 
 export interface PriceCandidate {
   price: number;
@@ -11,7 +12,7 @@ export interface PriceCandidate {
 interface PriceSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (price: number, method: string) => void;
+  onSelect: (price: number, method: string, currency: string) => void;
   productName: string | null;
   imageUrl: string | null;
   candidates: PriceCandidate[];
@@ -57,15 +58,14 @@ export default function PriceSelectionModal({
     const selected = candidates[selectedIndex];
     setIsSubmitting(true);
     try {
-      await onSelect(selected.price, selected.method);
+      await onSelect(selected.price, selected.method, selected.currency);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    const symbol = currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'CHF' ? 'CHF ' : '$';
-    return `${symbol}${price.toFixed(2)}`;
+  const formatPriceValue = (price: number, currency: string) => {
+    return formatPrice(price, currency);
   };
 
   const getConfidenceLabel = (confidence: number) => {
@@ -302,7 +302,7 @@ export default function PriceSelectionModal({
                   </div>
                   <div className="price-candidate-header">
                     <span className="price-candidate-price">
-                      {formatPrice(candidate.price, candidate.currency)}
+                      {formatPriceValue(candidate.price, candidate.currency)}
                     </span>
                     <span
                       className="price-candidate-confidence"

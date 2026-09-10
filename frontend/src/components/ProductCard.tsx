@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Product } from '../api/client';
 import Sparkline from './Sparkline';
 import AIStatusBadge from './AIStatusBadge';
+import { formatPrice } from '../utils/formatPrice';
 
 interface ProductCardProps {
   product: Product;
@@ -77,13 +78,11 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
       setIsRefreshing(false);
     }
   };
-  const formatPrice = (price: number | string | null, currency: string | null) => {
+  const formatPriceValue = (price: number | string | null, currency: string | null) => {
     if (price === null || price === undefined) return 'N/A';
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     if (isNaN(numPrice)) return 'N/A';
-    const currencySymbol =
-      currency === 'EUR' ? '€' : currency === 'GBP' ? '£' : currency === 'CHF' ? 'CHF ' : '$';
-    return `${currencySymbol}${numPrice.toFixed(2)}`;
+    return formatPrice(numPrice, currency);
   };
 
   const formatPriceChange = (change: number | null | undefined) => {
@@ -533,7 +532,7 @@ export default function ProductCard({ product, onDelete, onRefresh, isSelected, 
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               <span className="product-current-price">
-                {formatPrice(product.current_price, product.currency)}
+                {formatPriceValue(product.current_price, product.currency)}
               </span>
               <AIStatusBadge status={product.ai_status} size="small" />
             </div>

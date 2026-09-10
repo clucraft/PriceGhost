@@ -83,14 +83,15 @@ export default function Dashboard() {
     setProducts((prev) => [response.data as Product, ...prev]);
   };
 
-  const handlePriceSelected = async (selectedPrice: number, selectedMethod: string) => {
+  const handlePriceSelected = async (selectedPrice: number, selectedMethod: string, selectedCurrency: string) => {
     if (!priceReviewData) return;
 
     const response = await productsApi.create(
       priceReviewData.url,
       pendingRefreshInterval,
       selectedPrice,
-      selectedMethod
+      selectedMethod,
+      selectedCurrency
     );
 
     // When selecting a price, the API should always return a Product
