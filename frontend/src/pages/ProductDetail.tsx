@@ -378,15 +378,24 @@ export default function ProductDetail() {
         }
 
         .product-detail-meta-select {
-          padding: 0.375rem 0.5rem;
+          padding: 0.375rem 1.75rem 0.375rem 0.5rem;
           border: 1px solid var(--border);
           border-radius: 0.375rem;
-          background: var(--surface);
+          background-color: var(--surface);
           color: var(--text);
           font-size: 0.875rem;
           font-weight: 500;
           cursor: pointer;
+          appearance: none;
+          -webkit-appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.5rem center;
           transition: border-color 0.2s;
+        }
+
+        [data-theme="dark"] .product-detail-meta-select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
         }
 
         .product-detail-meta-select:hover {
