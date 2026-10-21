@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -21,9 +19,12 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # Backend API
+  # Backend API (build locally — GHCR images are amd64-only)
   backend:
-    image: ghcr.io/clucraft/priceghost-backend:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: priceghost-backend:local
     container_name: priceghost-backend
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/priceghost
@@ -37,9 +38,12 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Frontend
+  # Frontend (build locally — GHCR images are amd64-only)
   frontend:
-    image: ghcr.io/clucraft/priceghost-frontend:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: priceghost-frontend:local
     container_name: priceghost-frontend
     ports:
       - "80:80"
