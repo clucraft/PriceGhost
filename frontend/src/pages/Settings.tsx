@@ -513,7 +513,7 @@ export default function Settings() {
     }
     setIsTestingGemini(true);
     try {
-      const response = await settingsApi.testGemini(geminiApiKey);
+      const response = await settingsApi.testGemini(geminiApiKey, geminiModel);
       if (response.data.success) {
         setSuccess('Successfully connected to Gemini API!');
       } else {
@@ -1876,8 +1876,9 @@ export default function Settings() {
                               fontSize: '0.875rem'
                             }}
                           >
-                            <option value="">Default (Gemini 2.5 Flash Lite)</option>
-                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Fast, cheap)</option>
+                            <option value="">Default (Gemini 3.5 Flash Lite)</option>
+                            <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite (Fast, cheap)</option>
+                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite (Legacy)</option>
                             <option value="gemini-2.5-flash">Gemini 2.5 Flash (Balanced)</option>
                             <option value="gemini-2.5-pro">Gemini 2.5 Pro (High accuracy)</option>
                             <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Latest)</option>
