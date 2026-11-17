@@ -271,8 +271,8 @@ export const settingsApi = {
   testOllama: (baseUrl: string) =>
     api.post<OllamaTestResult>('/settings/ai/test-ollama', { base_url: baseUrl }),
 
-  testGemini: (apiKey: string) =>
-    api.post<{ success: boolean; message?: string; error?: string }>('/settings/ai/test-gemini', { api_key: apiKey }),
+  testGemini: (apiKey: string, model?: string) =>
+    api.post<{ success: boolean; message?: string; error?: string }>('/settings/ai/test-gemini', { api_key: apiKey, model }),
 };
 
 // AI Settings types

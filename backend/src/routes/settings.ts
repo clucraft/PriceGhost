@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { AuthRequest, authMiddleware } from '../middleware/auth';
 import { userQueries } from '../models';
+import { DEFAULT_GEMINI_MODEL } from '../config/gemini';
 
 const router = Router();
 
@@ -483,19 +484,24 @@ router.post('/ai/test-ollama', async (req: AuthRequest, res: Response) => {
 // Test Gemini API key
 router.post('/ai/test-gemini', async (req: AuthRequest, res: Response) => {
   try {
-    const { api_key } = req.body;
+    const { api_key, model: requestedModel } = req.body;
 
     if (!api_key) {
       res.status(400).json({ error: 'API key is required' });
       return;
     }
 
-    // Test the API key by listing models
+    if (requestedModel != null && typeof requestedModel !== 'string') {
+      res.status(400).json({ error: 'Model must be a string', success: false });
+      return;
+    }
+
+    // Test the selected model, using the same default as price extraction.
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(api_key);
 
     // Try to generate a simple response to verify the key works
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+    const model = genAI.getGenerativeModel({ model: requestedModel?.trim() || DEFAULT_GEMINI_MODEL });
     await model.generateContent('Say "API key valid" in 3 words or less');
 
     res.json({

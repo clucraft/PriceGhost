@@ -1,3 +1,4 @@
+import { DEFAULT_GEMINI_MODEL } from '../config/gemini';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -219,7 +220,6 @@ function prepareHtmlForAI(html: string): string {
 // Default models to use if user hasn't selected one
 const DEFAULT_ANTHROPIC_MODEL = 'claude-haiku-4-5-20251001';
 const DEFAULT_OPENAI_MODEL = 'gpt-4.1-nano-2025-04-14';
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
 async function extractWithAnthropic(
   html: string,
